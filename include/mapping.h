@@ -66,7 +66,7 @@
 	// Params:
 	//  - map: a pMapping object representing the mapping.
 	// Returns a NULL pointer in case of error, a valid pointer to the mapping
-	// name otherwhise
+	// name otherwise
 	//
 	// ===========================================================================
 	char *get_mapping_name(pMapping map);

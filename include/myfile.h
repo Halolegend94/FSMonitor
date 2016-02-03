@@ -8,8 +8,8 @@
 //this struct will contain all the info of a file.
 typedef struct _myFile {
 	char *name;
-	unsigned long long size;
-	unsigned long long lastWriteTimestamp;
+	long long size;
+	long long lastWriteTimestamp;
 	char *perms;
 	int isDir;
 } myFile;

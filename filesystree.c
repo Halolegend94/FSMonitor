@@ -2,13 +2,7 @@
 #include "include/mem_management.h"
 
 // ===========================================================================
-//
 // fst_build_root
-// Description: creates the first node of the file system tree. It's the root
-// and cannot be deleted.
-// Params: a pointer where to allocate a new fstNode structure
-// Returns: -1 in case of error, 0 otherwise
-//
 // ===========================================================================
 int fst_build_root(fstNode **root){
 	*root = (fstNode *) pmm_malloc(sizeof(fstNode));
@@ -212,10 +206,10 @@ char *fst_get_perms(fstNode *node){
 // ===========================================================================
 // fst_get_size
 // ===========================================================================
-unsigned long long fst_get_size(fstNode *node){
+long long fst_get_size(fstNode *node){
 	if(!node){
 		fprintf(stderr, "fst_get_size: node is null.\n");
-		return 0;
+		return -1;
 	}
 	return node->size;
 }
@@ -223,10 +217,10 @@ unsigned long long fst_get_size(fstNode *node){
 // ===========================================================================
 // fst_get_wtime
 // ===========================================================================
-unsigned long long fst_get_wtime(fstNode *node){
+long long fst_get_wtime(fstNode *node){
 	if(!node){
 		fprintf(stderr, "fst_get_wtime: node is null.\n");
-		return 0;
+		return -1;
 	}
 	return node->lastWriteTimestamp;
 }
@@ -267,16 +261,16 @@ int fst_is_monitored(fstNode *node){
 // ===========================================================================
 // fst_get_num_children
 // ===========================================================================
-unsigned int fst_get_num_children(fstNode *node){
+int fst_get_num_children(fstNode *node){
 	if(!node){
 		fprintf(stderr, "fst_get_num_children: node is null.\n");
-		return 0;
+		return -1;
 	}
 	return node->numChildren;
 }
 
 // ===========================================================================
-// __fst_print_tree_rec
+// __fst_print_tree_rec [SUPPORT FUNCTION]
 // ===========================================================================
 void __fst_print_tree_rec(fstNode *node, int lev){
 	fstNode **list = NULL;
@@ -288,9 +282,9 @@ void __fst_print_tree_rec(fstNode *node, int lev){
 	}
 	int i;
 	for(i = 0; i < size; i++){
-		printf("%*s| - Nome: %s, perms: %s, mod: %llu, size: %llu\n", lev, " ", fst_get_name(list[i]),
+		printf("%*s| - Nome: %s, perms: %s, mod: %ld, size: %ld\n", lev, " ", fst_get_name(list[i]),
 					fst_get_perms(list[i]), fst_get_wtime(list[i]), fst_get_size(list[i]));
-		if(fst_is_dir(list[i])) __fst_print_tree_rec(list[i], lev + 3);
+		if(fst_is_dir(list[i])) __fst_print_tree_rec(list[i], lev + 3); //recursive call
 	}
 }
 
