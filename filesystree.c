@@ -1,5 +1,4 @@
 #include "include/filesystree.h"
-#include "include/mem_management.h"
 
 // ===========================================================================
 // fst_build_root
@@ -72,8 +71,12 @@ int fst_delete_child(fstNode *father, fstNode *node){
 
 	if(father->numChildren > 1){ //we need to create a new list for the remaining items
 		newList = pmm_malloc((father->numChildren - 1) * sizeof(unsigned long));
+		if(!newList){
+			fprintf(stderr, "Error while allocating memory.\n");
+			return -1;
+		}
 	}
-
+	
 	int i, j;
 	//we need to find the entry that have to be deleted
 	int deleted = 0;
@@ -85,8 +88,8 @@ int fst_delete_child(fstNode *father, fstNode *node){
 			pmm_free(node); //free the struct
 			deleted = 1;
 		}else{
-			j++;
 			newList[j] = chdlist[i];
+			j++;
 		}
 
 	}
@@ -97,7 +100,7 @@ int fst_delete_child(fstNode *father, fstNode *node){
 	father->numChildren = father->numChildren - 1;
 	pmm_free(chdlist);
 	if(father->numChildren > 0) //set the new list
-	father->off_children = pmm_pointer_to_offset(newList);
+		father->off_children = pmm_pointer_to_offset(newList);
 	return 0;
 }
 
@@ -112,24 +115,24 @@ int fst_add_child(fstNode *father, myFile *file, fstNode **node){
 
 
 	/*allocate space for a new node*/
-	fstNode *newNode = (fstNode *) pmm_malloc(sizeof(fstNode));
-	if(node != NULL) *node = newNode;
+	fstNode *newNode = (fstNode *) pmm_malloc(sizeof(fstNode));	
 	if(!newNode){
-		fprintf(stderr, "Error while allocating memory with pmm in addFSTChild.\n");
+		fprintf(stderr, "Error while allocating memory with pmm in fst_add_child.\n");
 		return -1;
 	}
-
+	
+	if(node != NULL) *node = newNode;
 	int nlen = strlen(file->name);
 
 	char *pName = (char *) pmm_malloc(sizeof(char) * (nlen + 1));
 	if(!pName){
-		fprintf(stderr, "Error while allocating memory with pmm in addFSTChild.\n");
+		fprintf(stderr, "Error while allocating memory with pmm in fst_add_child.\n");
 		pmm_free(newNode);
 		return -1;
 	}
 
 	if(!(file->perms)){
-		printf("Error perme.\n");
+		printf("Error perms.\n");
 		exit(0);
 	}
 	strcpy(pName, file->name);
@@ -138,7 +141,7 @@ int fst_add_child(fstNode *father, myFile *file, fstNode **node){
 
 	char *pPerms = (char *) pmm_malloc(sizeof(char) * (plen + 1));
 	if(!pPerms){
-		fprintf(stderr, "Error while allocating memory with pmm in addFSTChild.\n");
+		fprintf(stderr, "Error while allocating memory with pmm in fst_add_child.\n");
 		pmm_free(newNode);
 		pmm_free(pName);
 		return -1;
@@ -158,7 +161,7 @@ int fst_add_child(fstNode *father, myFile *file, fstNode **node){
 	father->numChildren++;
 	unsigned long *newList = (unsigned long *) pmm_malloc(sizeof(unsigned long) * (father->numChildren));
 	if(!newList){
-		fprintf(stderr, "Error while allocating memory with pmm in addFSTChild.\n");
+		fprintf(stderr, "Error while allocating memory with pmm in fst_add_child.\n");
 		pmm_free(newNode);
 		pmm_free(pName);
 		pmm_free(pPerms);
@@ -181,6 +184,93 @@ int fst_add_child(fstNode *father, myFile *file, fstNode **node){
 	return 0;
 }
 
+// ===========================================================================
+// fst_add_children
+// ===========================================================================
+int fst_add_children(fstNode *father, myFileList *fList, fstNode **node){
+	if(!father || !fList){
+		fprintf(stderr, "fst_add_child: one of the params is not valid.\n");
+		return -1;
+	}
+
+
+	/*allocate space for a new set of nodes*/
+	fstNode *nodeList = (fstNode *) pmm_malloc(sizeof(fstNode) * fList->count);
+
+	if(!nodeList){
+		fprintf(stderr, "Error while allocating memory with pmm in fst_add_children.\n");
+		return -1;
+	}
+	if(node != NULL) *node = nodeList;
+	int y; //counter
+	for(y = 0; y < fList->count; y++){
+	
+		myFile *file = &(fList->list[y]); 
+		int nlen = strlen(file->name);
+
+		char *pName = (char *) pmm_malloc(sizeof(char) * (nlen + 1));
+		if(!pName){
+			fprintf(stderr, "Error while allocating memory with pmm in fst_add_child.\n");
+			pmm_free(nodeList);
+			return -1;
+		}
+
+		if(!(file->perms)){
+			printf("Error perms.\n");
+			exit(0);
+		}
+		strcpy(pName, file->name);
+		nodeList[y].off_name = pmm_pointer_to_offset(pName);
+		int plen = strlen(file->perms);	
+
+		char *pPerms = (char *) pmm_malloc(sizeof(char) * (plen + 1));
+		if(!pPerms){
+			fprintf(stderr, "Error while allocating memory with pmm in fst_add_child.\n");
+			pmm_free(nodeList);
+			pmm_free(pName);
+			return -1;
+		}
+
+		strcpy(pPerms, file->perms);
+		nodeList[y].off_perms = pmm_pointer_to_offset(pPerms);
+
+		nodeList[y].size = file->size; //file size
+		nodeList[y].isDir = file->isDir;
+		nodeList[y].lastWriteTimestamp = file->lastWriteTimestamp;
+		nodeList[y].isRoot = 0;
+		nodeList[y].isMonitored = 0;
+		nodeList[y].numChildren = 0;
+	}
+	/*we now add this new node to the father node*/
+	father->numChildren += fList->count;
+	unsigned long *newList = (unsigned long *) pmm_malloc(sizeof(unsigned long) * (father->numChildren));
+	if(!newList){
+		fprintf(stderr, "Error while allocating memory with pmm in fst_add_children.\n");
+		for(y = 0; y < fList->count; y++){
+			pmm_free(pmm_offset_to_pointer(nodeList[y].off_name));
+			pmm_free(pmm_offset_to_pointer(nodeList[y].off_perms));
+		}
+		pmm_free(nodeList);
+		return -1;
+	}
+	if(father->numChildren == fList->count){
+		for(y = 0; y < fList->count; y++)
+			newList[y] = pmm_pointer_to_offset(nodeList + y);
+		father->off_children = pmm_pointer_to_offset(newList);
+	}else{
+		long *list = pmm_offset_to_pointer(father->off_children); //retrieve pointer to the list
+		/*we need to realloc (manually) the list*/
+		int i, j;
+		for(i = 0; i < (father->numChildren - fList->count); i++){
+			newList[i] = list[i];
+		}
+		for( j = 0; i < father->numChildren;j++, i++)
+			newList[i] = pmm_pointer_to_offset(nodeList + j);
+		pmm_free(list);
+		father->off_children = pmm_pointer_to_offset(newList);
+	}
+	return 0;
+}
 // ===========================================================================
 // fst_get_name
 // ===========================================================================
@@ -282,7 +372,7 @@ void __fst_print_tree_rec(fstNode *node, int lev){
 	}
 	int i;
 	for(i = 0; i < size; i++){
-		printf("%*s| - Nome: %s, perms: %s, mod: %ld, size: %ld\n", lev, " ", fst_get_name(list[i]),
+		printf("%*s| - Nome: %s, perms: %s, mod: %lld, size: %lld\n", lev, " ", fst_get_name(list[i]),
 					fst_get_perms(list[i]), fst_get_wtime(list[i]), fst_get_size(list[i]));
 		if(fst_is_dir(list[i])) __fst_print_tree_rec(list[i], lev + 3); //recursive call
 	}

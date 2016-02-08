@@ -21,12 +21,12 @@ void *pmm_offset_to_pointer(unsigned long offset) {
 // ===========================================================================
 // pmm_initialize_management
 // ===========================================================================
-int pmm_initialize_management(void *basepointer, unsigned long byteNumber, void **returnPointer){
+int pmm_initialize_management(char *basepointer, unsigned long byteNumber, void **returnPointer){
    if(!basepointer){
       fprintf(stderr, "Error in pmm_initialize_management: base pointer not valid.\n");
       return -1;
    }
-   pmmBasePointer = (char *) basepointer;
+   pmmBasePointer =  basepointer;
 
    if(returnPointer){
       //user requires only the first memory block. We suppose memory is already initialized
@@ -77,7 +77,8 @@ void *pmm_malloc(unsigned long req_size){
 // pmm_free
 // ===========================================================================
 void pmm_free(void *pointer){
-   if(!pointer || pointer > (pmmLastValidPointer - sizeof(metadata))){
+  char *upperLimit = pmmLastValidPointer - sizeof(metadata);
+  if(!pointer || ((char *) pointer) > upperLimit){
       fprintf(stderr, "pmm_free called on invalid pointer.\n");
       return;
    }
@@ -85,26 +86,26 @@ void pmm_free(void *pointer){
    metadata *previous = pmm_offset_to_pointer(block->previous);
    metadata *next =(metadata *) (((char *) pointer) + block->size);
    metadata *nextToNext =(metadata *) (((char *) next) + sizeof(metadata) + next->size);
-
-   if(next->isFree && previous->isFree){
+   
+   if(((char *) next) < upperLimit && next->isFree && previous->isFree){
       previous->size = previous->size  + block->size + next->size + (2 * sizeof(metadata));
-      nextToNext->previous = block->previous;
-   }else if(next->isFree){
+       if(((char *) nextToNext) < upperLimit) nextToNext->previous = block->previous;
+   }else if(((char *) next) < upperLimit && next->isFree){
       block->size += next->size + sizeof(metadata);
       block->isFree = 1;
-      nextToNext->previous = next->previous;
+      if(((char *) nextToNext) < upperLimit) nextToNext->previous = next->previous;
    }else if(previous->isFree){
       previous->size += block->size + sizeof(metadata);
-      next->previous = block->previous;
+       if(((char *) next) < upperLimit) next->previous = block->previous;
    }else{
       block->isFree = 1;
    }
 }
 
 // ===========================================================================
-// pmm_print_memory_status
+// pmm_print_memory_state
 // ===========================================================================
-void pmm_print_memory_status(){
+void pmm_print_memory_state(){
    metadata *p = (metadata *) pmmBasePointer;
    unsigned long counter = 0;
    while((char *)p < pmmLastValidPointer){

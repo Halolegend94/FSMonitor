@@ -24,7 +24,7 @@
 // If an error has occurred, -1 is returned, 0 otherwise.
 //
 // ===========================================================================
-int pmm_initialize_management(void *basepointer, unsigned long byteNumber, void **returnPointer);
+int pmm_initialize_management(char *basepointer, unsigned long byteNumber, void **returnPointer);
 
 // ===========================================================================
 //
@@ -67,10 +67,10 @@ void pmm_free(void *pointer);
 
 // ===========================================================================
 //
-// pmm_print_memory_status
+// pmm_print_memory_state
 // Description: print a representation of the memory blocks. Used for debugging
 //
 // ===========================================================================
-void pmm_print_memory_status();
+void pmm_print_memory_state();
 
 #endif

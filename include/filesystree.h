@@ -2,7 +2,7 @@
 	#define __FILESYSTREE__
 	#include "myfile.h"
 	#include <string.h>
-
+	#include "include/mem_management.h"
 	/*The following structure represents a node in the FileSystem Tree. The FileSystem Tree
 	is used to mantain the state of the motinored directories by the deamon.*/
 	typedef struct _fstnode{
@@ -58,6 +58,34 @@
 	//
 	// ===========================================================================
 	int fst_delete_child(fstNode *father, fstNode *node);
+	
+	// ===========================================================================
+	//
+	// fst_add_child
+	// Description: add a child node to a fstNode
+	// Params:
+	// 	-	father: a pointer to the father fstNode
+	// 	-	file: a pointer to a struct myFile with the info
+	// 	-	node: a pointer to a location where a pointer to the added node
+	// 		will be stored.
+	//
+	// ===========================================================================
+	int fst_add_child(fstNode *father, myFile *file, fstNode **node){
+	
+	// ===========================================================================
+	//
+	// fst_add_children
+	// Description: add a set of fstNode as children to a fstNode
+	// Params:
+	// 	-	father: a pointer to the father fstNode
+	// 	-	fList: a pointer to a struct myFileList with the files list
+	// 	-	nodeList: a pointer to a location where a pointer to the added
+	// 		list of nodes will be stored.
+	//
+	// ===========================================================================
+	int fst_add_children(fstNode *father, myFileList *fList, fstNode **list){
+	
+	
 
 	// ===========================================================================
 	//
