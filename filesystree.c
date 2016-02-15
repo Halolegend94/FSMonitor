@@ -27,7 +27,7 @@ int fst_build_root(fstNode **root){
 // ===========================================================================
 int fst_get_children(fstNode *father, fstNode ***list, unsigned int *size){
 	if(!father || !list){
-		fprintf(stderr, "fst_get_children: input non valid.\n");
+		fprintf(stderr, "fst_get_children: input not valid.\n");
 		return -1;
 	}
 	*size = father->numChildren;
@@ -131,10 +131,6 @@ int fst_add_child(fstNode *father, myFile *file, fstNode **node){
 		return -1;
 	}
 
-	if(!(file->perms)){
-		printf("Error perms.\n");
-		exit(0);
-	}
 	strcpy(pName, file->name);
 	newNode->off_name = pmm_pointer_to_offset(pName);
 	int plen = strlen(file->perms);
@@ -215,10 +211,6 @@ int fst_add_children(fstNode *father, myFileList *fList, fstNode **node){
 			return -1;
 		}
 
-		if(!(file->perms)){
-			printf("Error perms.\n");
-			exit(0);
-		}
 		strcpy(pName, file->name);
 		nodeList[y].off_name = pmm_pointer_to_offset(pName);
 		int plen = strlen(file->perms);	

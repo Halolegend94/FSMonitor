@@ -10,7 +10,7 @@ int wl_create(watchedList **list){
 		return -1;
 	}
 	(*list)->count = 0;
-	(*list)->list = NULL;
+	(*list)->off_list = 0;
 	return 0;
 }
 
@@ -71,14 +71,12 @@ int wl_add_path(char *path, watchedList *wList){
 		watchedPath *wPath = (watchedPath *) pmm_malloc(sizeof(watchedPath));
 		if(!wPath){
 			fprintf(stderr, "wl_add_path: error while allocating memory.\n");
-			pmm_free(newPList);
 			return -1;
 		}
 		char *fpath = (char *) pmm_malloc(sizeof(char) * (strlen(path) + 1));
 		if(!fpath){
 			fprintf(stderr, "wl_add_path: error while allocating memory.\n");
 			pmm_free(wPath);
-			pmm_free(newPList);
 			return -1;
 		}
 		strcpy(fpath, path);
@@ -91,6 +89,8 @@ int wl_add_path(char *path, watchedList *wList){
 						
 		if(!newPList){
 			fprintf(stderr, "wl_add_path: error while allocating memory.\n");
+			pmm_free(wPath);
+			pmm_free(fpath);
 			return -1;
 		}
 		
@@ -115,7 +115,7 @@ int wl_remove_path(char *path, watchedList *wList, int *entryRemoved){
 		fprintf(stderr, "wl_add_path: params not valid.\n");
 		return -1;
 	}
-
+	*entryRemoved = 0;
 	int i; //counter
 	unsigned long *pList = pmm_offset_to_pointer(wList->off_list);
 	for(i = 0; i < wList->count; i++){
@@ -141,7 +141,7 @@ int wl_remove_path(char *path, watchedList *wList, int *entryRemoved){
 				//we can free the resources
 				pmm_free(name);
 				pmm_free(p);
-				free(pList);
+				pmm_free(pList);
 				wList->count = wList->count - 1;
 				wList->off_list = pmm_pointer_to_offset(pNewList);
 				*entryRemoved = 1;
@@ -164,9 +164,9 @@ void wl_print_watched_list(watchedList *wList){
 	printf("Num entries: %u\n", wList->count);
 	printf("|------------------------------|\n");
 	for(i = 0; i < wList->count; i++){
-		watchedPath p = pmm_offset_to_pointer(offs[i]);
+		watchedPath *p = pmm_offset_to_pointer(offs[i]);
 		printf("PATH: %s, Servers: %u\n", (char *) pmm_offset_to_pointer(
-				wList->off_fullpath), wList->serverCount);
+				p->off_fullpath), p->serverCount);
 	}
 	printf("|------------------------------|\n");
 	
