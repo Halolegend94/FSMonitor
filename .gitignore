@@ -5,3 +5,5 @@
 *.exe
 
 clean.sh
+
+countlines.sh
