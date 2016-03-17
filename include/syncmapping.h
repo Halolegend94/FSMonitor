@@ -10,7 +10,8 @@
   //
   // syncmapping_createlock
   // Description: this function creates a new file that will be used as lock
-  // by the application in order to coordinate accesses to the mapping.
+  // by the application in order to coordinate accesses to the mapping. If the 
+  // file already exists, just opens it to create a pSyncMapping.
   // Params:
   //  - lock: used to store a pointer to a newly created pSyncMapping structure
   //  - lockname: the name of the file that will be created. IMPORTANT: lockname

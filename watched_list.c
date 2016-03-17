@@ -22,33 +22,29 @@ int wl_add_path(char *path, watchedList *wList){
 		fprintf(stderr, "wl_add_path: params not valid.\n");
 		return -1;
 	}
-	
-		
+
+
 	if(wList->count == 0){
 		unsigned long *pList = (unsigned long *) pmm_malloc(sizeof(unsigned long));
 		if(!pList){
 			fprintf(stderr, "wl_add_path: error while allocating memory.\n");
 			return -1;
 		}
-		
+
 		/*create a new path object*/
 		watchedPath *wPath = (watchedPath *) pmm_malloc(sizeof(watchedPath));
 		if(!wPath){
 			fprintf(stderr, "wl_add_path: error while allocating memory.\n");
-			pmm_free(pList);
 			return -1;
 		}
 		char *fpath = (char *) pmm_malloc(sizeof(char) * (strlen(path) + 1));
 		if(!fpath){
 			fprintf(stderr, "wl_add_path: error while allocating memory.\n");
-			pmm_free(wPath);
-			pmm_free(pList);
 			return -1;
 		}
 		strcpy(fpath, path);
 		wPath->off_fullpath = pmm_pointer_to_offset(fpath);
 		wPath->serverCount = 1;
-		
 		/*add the path object in the path list*/
 		pList[0] = pmm_pointer_to_offset(wPath);
 		wList->off_list = pmm_pointer_to_offset(pList);
@@ -65,8 +61,6 @@ int wl_add_path(char *path, watchedList *wList){
 				return 0;
 			}
 		}
-		
-		
 		/*if we are here, no path that matches has been found. create a new path object*/
 		watchedPath *wPath = (watchedPath *) pmm_malloc(sizeof(watchedPath));
 		if(!wPath){
@@ -76,29 +70,25 @@ int wl_add_path(char *path, watchedList *wList){
 		char *fpath = (char *) pmm_malloc(sizeof(char) * (strlen(path) + 1));
 		if(!fpath){
 			fprintf(stderr, "wl_add_path: error while allocating memory.\n");
-			pmm_free(wPath);
 			return -1;
 		}
 		strcpy(fpath, path);
 		wPath->off_fullpath = pmm_pointer_to_offset(fpath);
 		wPath->serverCount = 1;
-		
 		//new offset list
-		unsigned long *newPList = (unsigned long *) pmm_malloc(sizeof(unsigned long) 
+		unsigned long *newPList = (unsigned long *) pmm_malloc(sizeof(unsigned long)
 						* (wList->count + 1));
-						
+
 		if(!newPList){
 			fprintf(stderr, "wl_add_path: error while allocating memory.\n");
-			pmm_free(wPath);
-			pmm_free(fpath);
 			return -1;
 		}
-		
+
 		//copy offset to watched paths already present
 		for(i = 0; i < wList->count; i++){
 			newPList[i] = pList[i];
 		}
-		
+
 		/*add the path object in the path list*/
 		newPList[i] = pmm_pointer_to_offset(wPath);
 		wList->off_list = pmm_pointer_to_offset(newPList);
@@ -147,7 +137,7 @@ int wl_remove_path(char *path, watchedList *wList, int *entryRemoved){
 				*entryRemoved = 1;
 			}
 			return 0;
-			
+
 		}
 	}
 	//if we are here, no path has been found with that name
@@ -169,6 +159,5 @@ void wl_print_watched_list(watchedList *wList){
 				p->off_fullpath), p->serverCount);
 	}
 	printf("|------------------------------|\n");
-	
-}
 
+}

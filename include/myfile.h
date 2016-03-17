@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include "common_utilities.h"
 
 //this struct will contain all the info of a file.
 typedef struct _myFile {
@@ -77,6 +78,31 @@ char *concatenate_path(char *prefix, char *suffix);
 //
 // ===========================================================================
 int is_directory(char *path);
+
+// ===========================================================================
+//
+// is_absolute_path
+// Description: tests if the path represts an absolute path.
+// Params:
+// 	- path: the path to be tested.
+// Returns 0 if it is not an absolute path, 1 if it is
+//
+// ===========================================================================
+int is_absolute_path(char *path);
+
+// ===========================================================================
+//
+// tokenize_path
+// Description: given an absolute path, returns a list of the folders that are
+// part of the path.
+// Params:
+// 	-	path: the path strings
+// 	-	tokenList: a pointer to a location where the list will be saved
+// 	-	tokenListSize: a pointer to an integer which will contain the list size
+// Returns 0 in case of success, -1 otherwise
+//
+// ===========================================================================
+int tokenize_path(char *path, char ***tokenList, int *tokenListSize);
 
 // ===========================================================================
 //

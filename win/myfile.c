@@ -12,16 +12,16 @@
 #define MAXFILES 20
 #define MAXFILESINC 15
 
+#define MAX_TOKENS 10 //used in tokenize path
+#define MAX_TOKENS_INC 10
+#define MAX_TOKEN_LEN 20
+#define MAX_TOKEN_INC 15
+
 /*function prototypes*/
-int get_directory_content(char*, myFileList*);
-char *concatenate_path(char*, char*);
 int __get_file_type(LPWIN32_FIND_DATA);
 char *__get_account_name(DWORD*);
 char *__get_mask_string(DWORD);
 char *__get_security_acls(char*);
-char *get_current_directory(void);
-int delete_file(char*);
-int is_directory(char*);
 
 // ===========================================================================
 // get_directory_content
@@ -141,6 +141,15 @@ char *concatenate_path(char *path, char *lastpiece){
 		return NULL;
 	}
 	return temp;
+}
+
+// ===========================================================================
+// is_absolute_path
+// ===========================================================================
+int is_absolute_path(char *path){
+	if(strlen(path) < 3) return 0;
+	if(isalpha(path[0]) && (path[1] == ':') && (path[2] == '\\')) return 1;
+	return 0;
 }
 
 // ===========================================================================
@@ -388,6 +397,95 @@ int is_directory(char *dir){
 	else
 		return 0;
 }
+
+// ===========================================================================
+// tokenize_path
+// ===========================================================================
+int tokenize_path(char *path, char ***tokenList, int *tokenListSize){
+	if(path == NULL){
+		fprintf(stderr, "tokenize_path: path parameter is null\n");
+		return -1;
+	}
+
+	if(MAX_TOKENS < 1 || MAX_TOKEN_LEN < 3){
+		fprintf(stderr, "tokenize_path: DEFINITIONS values not valid.\n");
+		return -1;
+	}
+
+	*tokenList = (char **) malloc(sizeof(char *) * MAX_TOKENS);
+	if(!(*tokenList)){
+		fprintf(stderr, "tokenize_path: error while allocating memory.\n");
+		return -1;
+	}
+	int charIndex = 0;
+	int charsRead = 0;
+	int maxTokCapacity = MAX_TOKENS;
+	int maxCapacity = MAX_TOKEN_LEN;
+	int pathLen = strlen(path);
+
+	char *tempToken = malloc(sizeof(char) * maxCapacity);
+	if(!tempToken){
+		fprintf(stderr, "tokenize_path: error while allocating memory.\n");
+		return -1;
+	}
+
+	//IMPORTANT: the first token will always be the disk name (eg C:\)
+	if(sprintf(tempToken, "%c:\\", path[0]) < 0){
+		fprintf(stderr, "tokenize_path: Error while creating a token\n");
+		return -1;
+	}
+	(*tokenList)[0] = tempToken;
+	*tokenListSize = 1;
+	charIndex = 3;
+
+	tempToken = malloc(sizeof(char) * maxCapacity);
+	if(!tempToken){
+		fprintf(stderr, "tokenize_path: error while allocating memory.\n");
+		return -1;
+	}
+
+	while(charIndex < pathLen){
+		if(charsRead - 1 >= maxCapacity){ //we need to allocate more space for the token name
+			maxCapacity += MAX_TOKEN_INC;
+			tempToken = realloc(tempToken, maxCapacity);
+			if(!tempToken){
+				fprintf(stderr, "tokenize_path: error while reallocating memory.\n");
+				return -1;
+			}
+		}
+		if(path[charIndex] == '\\' || path[charIndex] == '/') { //token end reached
+			tempToken[charsRead] = '\0';
+			(*tokenList)[*tokenListSize] = tempToken;
+			(*tokenListSize)++;
+			charsRead = 0;
+			charIndex++;
+			tempToken = malloc(sizeof(char) * maxCapacity);
+			if(!tempToken){
+				fprintf(stderr, "tokenize_path: error while allocating memory.\n");
+				return -1;
+			}
+			if(*tokenListSize >= maxTokCapacity){
+				maxTokCapacity += MAX_TOKENS_INC;
+				*tokenList = realloc(*tokenList, sizeof(char *) * maxTokCapacity);
+				if(!(*tokenList)){
+					fprintf(stderr, "tokenize_path: error while reallocating memory.\n");
+					return -1;
+				}
+			}
+		}else{
+			tempToken[charsRead++] = path[charIndex++];
+		}
+	}
+	if(charsRead > 0){
+		tempToken[charsRead] = '\0';
+		(*tokenList)[*tokenListSize] = tempToken;
+		(*tokenListSize)++;
+	}else{
+		free(tempToken);
+	}
+	return 0;
+}
+
 
 // ===========================================================================
 // print_file_info [DEBUG]

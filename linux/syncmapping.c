@@ -15,7 +15,6 @@ struct syncMapping{
 int syncmapping_createlock(struct syncMapping **lock, char *filename){
    int fd = open(filename, O_CREAT | O_EXCL, 0666);
    if(fd == -1){
-      /*the lock is already there, we try to take it*/
       fd = open(filename, O_RDONLY);
       if(fd == -1){
         fprintf(stderr, "An error occurred while opening the syncmapping lock.\n");
