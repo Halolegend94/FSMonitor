@@ -1,4 +1,5 @@
 #include "../include/myfile.h"
+#include "utilities.h"
 #include <windows.h>
 
 #define ACL_SIZE 1024
@@ -102,7 +103,7 @@ int get_directory_content(char *dir, myFileList *fileList) {
 		int ret = 0; //return value
 		char *perms = __get_security_acls(fullPath, &ret);
 		if(ret == 1){
-			fprintf(stderr, "Error while getting information %s. Defaults are empty string.\n", findData.cFileName);
+			//fprintf(stderr, "Error while getting information %s. Defaults are empty string.\n", findData.cFileName);
 			perms = malloc(sizeof(char));
 			if(!perms){
 				fprintf(stderr, "get_directory_content: error while allocating memory.\n");
@@ -208,7 +209,7 @@ int __get_file_type(LPWIN32_FIND_DATA pFileData) {
 		 return NULL;
 	 }
 	 if(!LookupAccountSid(NULL, sid, name, &size, NULL, &domsize, &use)){
-		 fprintf(stderr, "%s\n", GetLastErrorAsString());
+		 //fprintf(stderr, "%s\n", GetLastErrorAsString());
 		 free(name);
 		 *ret = 1;
 		 return NULL;

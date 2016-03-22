@@ -97,10 +97,11 @@ int register_server_path(mappingStructure *str, unsigned int serverID, char *pat
 		fprintf(stderr, "register_server_path: error while performing the first scan.\n");
 		return -1;
 	}
+	return 0;
 }
 
 // ===========================================================================
-// unregister_server TODO:
+// unregister_server
 // ===========================================================================
 int unregister_server(mappingStructure *str, unsigned int sid, char **pathList, int count){
 	int i;
@@ -119,29 +120,87 @@ int unregister_server(mappingStructure *str, unsigned int sid, char **pathList, 
 	for(i = 0; i < count; i++){
 		  notificationsBucket *current = start;
 		  monitored = 0;
+		  char *tPath = concatenate_path(pathList[i], "");
+		  if(tPath){
+			  fprintf(stderr, "unregister_server: error while concatenating a path.\n");
+			  return -1;
+		  }
 		  do{
-			if(is_prefix(pathList[i], pmm_offset_to_pointer(current->off_path)) == 0){
-			 	//pathList[i] is monitored
-				monitored = 1;
-				break;
-			}
-			if(current->off_next == 0) break;
-			current = pmm_offset_to_pointer(current->off_next);
-		}while(1);
+			  if(strcicmp(tPath, pmm_offset_to_pointer(current->off_path)) == 0){
+				  //pathList[i] is monitored
+				  monitored = 1;
+				  break;
+			  }
+			  if(current->off_next == 0) break;
+			  current = pmm_offset_to_pointer(current->off_next);
+		  }while(1);
+		  free(tPath);
+		  if(monitored == 0){//we can delete the subtrees that are not monitored
+			  char **tokens = NULL;
+			  int numTok = 0;
+			  int monitored = 0; //tells if the path was already monitored
+			  if(tokenize_path(pathList[i], &tokens, &numTok) == -1){
+				  fprintf(stderr, "__first_scan: error while tokenizing the path.\n");
+				  return -1;
+			  }
+			  __delete_server_subtree(pmm_offset_to_pointer(str->off_fileSystemTree), tokens, 0, numTok-1);
+		  }
+	  }
+	  return 0;
+  }
 
-		if(monitored == 0){//we can delete it
-			//TODO: delete function
+// ===========================================================================
+// __dfs_clean_subtree
+// ===========================================================================
+int __dfs_clean_subtree(fstNode *root){
+	int delete = !(root->isMonitored);
+	if(root->isDir && delete){
+		fstNode **nodes;
+		int size;
+		if(fst_get_children(root, &nodes, &size) == -1){
+			fprintf(stderr, "__dfs_clean_subtree: error while getting the root's children.\n");
+			return -1;
+		}
+		int i;
+		for(i = 0; i < size; i++){
+			int ret = __dfs_clean_subtree(nodes[i]);
+			if(ret == -1) return -1;
+			else delete = delete && ret;
 		}
 	}
-	return 0;
+	if(delete) {
+		pmm_free(pmm_offset_to_pointer(root->off_name));
+		pmm_free(pmm_offset_to_pointer(root->off_perms));
+		if(root->numChildren > 0){
+			pmm_free(pmm_offset_to_pointer(root->off_children));
+		}
+		pmm_free(root);
+		return 1;
+	}else{
+		return 0;
+	}
 }
 
 // ===========================================================================
-// delete_server_path TODO
+// delete_server_path
 // ===========================================================================
-int __delete_server_path(fstNode *root, char *path){
-
+int __delete_server_subtree(fstNode *root, char **tokens, int index, int target){
+	fstNode *nod;
+	int ret = fst_contains_child(root, tokens[index], &nod);
+	if(ret == -1){
+		fprintf(stderr, "__delete_server_subtree: error while checking for a child to be in root's children list.\n");
+		return -1;
+	}
+	if(index < target){
+		__delete_server_subtree(nod, tokens, index + 1, target);
+		if(index == 0) return __dfs_clean_subtree(nod);
+		else return 0;
+	}else{
+		nod->isMonitored = 0;
+		return 0;
+	}
 }
+
 
 // ===========================================================================
 // __support_first_scan
@@ -189,6 +248,7 @@ int __first_scan(fstNode *root, char *path){
 	//STEP 1: Add a path from the root node to the monitored node
 	char **tokens = NULL;
 	int numTok = 0;
+	int monitored = 0; //tells if the path was already monitored
 	if(tokenize_path(path, &tokens, &numTok) == -1){
 		fprintf(stderr, "__first_scan: error while tokenizing the path.\n");
 		return -1;
@@ -205,9 +265,10 @@ int __first_scan(fstNode *root, char *path){
 	}
 	strcpy(conc_path, tokens[0]); // copy "/" or "c:\"
 	//for each token
+	int ret = 0; //return value
 	for(i = 0; i < numTok; i++){
 		fstNode *nod;
-		int ret = fst_contains_child(current, tokens[i], &nod);
+		ret = fst_contains_child(current, tokens[i], &nod);
 
 		if(ret == -1){ //Error
 			fprintf(stderr, "__first_scan: error in contains_child\n");
@@ -215,6 +276,7 @@ int __first_scan(fstNode *root, char *path){
 
 		}else if(ret == 1){ //true
 			current = nod;
+			monitored = monitored == 0 ? nod->isMonitored : monitored;
 			if(i > 0){
 				//update the current path
 				char *tmp = concatenate_path(conc_path, tokens[i]);
@@ -282,7 +344,8 @@ int __first_scan(fstNode *root, char *path){
 	if(!current->isMonitored){
 		current->isMonitored = 1;
 		//we need to perform a scan
-		if(__support_first_scan(current, conc_path) == -1){
+		if(monitored == 0)
+		 if(__support_first_scan(current, conc_path) == -1){
 			fprintf(stderr, "Error while performing the first scan.\n");
 			return -1;
 		}
@@ -334,7 +397,7 @@ int scan(fstNode *currentNode, char *path, mappingStructure *str, int monitored)
 			fprintf(stderr, "scan: error while allocating memory.\n");
 			return -1;
 		}
-		//DEB:printf("Inizio dir %s\n", path);
+
 		for(i = 0; i < fList.count; i++){
 
 			int ffound = 0;
@@ -422,7 +485,6 @@ int scan(fstNode *currentNode, char *path, mappingStructure *str, int monitored)
 		}
 
 		free(fList.list);
-		//DEB:printf("inizio cancellati.\n");
 		//finally we check for deleted nodes
  		for(j = 0; j < nListSize; j++){
 			if(checkVector[j] == 0){
@@ -453,7 +515,7 @@ int scan(fstNode *currentNode, char *path, mappingStructure *str, int monitored)
 			return -1;
 		}
 	}
-	//DEB:printf("Chiamate ricorsive.\n");
+
 	//recursive calls
 	int i;
 	for(i = 0; i < nListSize; i++){

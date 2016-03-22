@@ -64,10 +64,10 @@ mapping.obj : "win\mapping.c"
 	$(WC) $(WOBJ) win\mapping.c
 
 myfile.obj : "win\myfile.c"
-	$(WC) $(OBJ) win\myfile.c
+	$(WC) $(WOBJ) win\myfile.c
 
 utilities.obj :  win\utilities.c
-	$(WC) $(OBJ)  win\utilities.c
+	$(WC) $(WOBJ)  win\utilities.c
 
 syncmapping.obj : "win\syncmapping.c"
 	$(WC) $(WOBJ) win\syncmapping.c
