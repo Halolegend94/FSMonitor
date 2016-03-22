@@ -13,14 +13,9 @@ int nb_create(notificationsBucket **firstElement, unsigned int serverID, char *p
       fprintf(stderr, "nb_create: error while allocating memory.\n");
       return -1;
    }
-   int len = strlen(pathName) + 2;
-   char *mPath = pmm_malloc(sizeof(char) * len);
+   char *mPath =  concatenate_path(pathName, "");
    if(!mPath){
-      fprintf(stderr, "nb_add_bucket: error while allocating memory.\n");
-      return -1;
-   }
-   if(sprintf(mPath, "%s/", pathName) < 0){
-      fprintf(stderr, "nb_create: error while creating the path name.\n");
+      fprintf(stderr, "Error while concatenating strings.\n");
       return -1;
    }
    (*firstElement)->serverID = serverID;
@@ -46,14 +41,9 @@ int nb_add_bucket(notificationsBucket *start, unsigned int serverID, char *pathN
       fprintf(stderr, "nb_add_bucket: error while allocating memory.\n");
       return -1;
    }
-   int len = strlen(pathName) + 2;
-   char *Pname = pmm_malloc(sizeof(char) * len);
+   char *Pname =  concatenate_path(pathName, "");
    if(!Pname){
-      fprintf(stderr, "nb_add_bucket: error while allocating memory.\n");
-      return -1;
-   }
-   if(sprintf(Pname, "%s/", pathName) < 0){
-      fprintf(stderr, "nb_create: error while creating the path name.\n");
+      fprintf(stderr, "Error while concatenating strings.\n");
       return -1;
    }
    newBucket->serverID = serverID;
@@ -73,14 +63,9 @@ int nb_add_bucket(notificationsBucket *start, unsigned int serverID, char *pathN
 int nb_remove_bucket(notificationsBucket **start, unsigned int serverID, char *pathName){
    notificationsBucket *previous = NULL;
    notificationsBucket *currentBucket = *start;
-   int len = strlen(pathName) + 2;
-   char *mPath = malloc(sizeof(char) * len);
+   char *mPath =  concatenate_path(pathName, "");
    if(!mPath){
-      fprintf(stderr, "nb_add_bucket: error while allocating memory.\n");
-      return -1;
-   }
-   if(sprintf(mPath, "%s/", pathName) < 0){
-      fprintf(stderr, "nb_create: error while creating the path name.\n");
+      fprintf(stderr, "Error while concatenating strings.\n");
       return -1;
    }
    do{
@@ -135,20 +120,15 @@ int nb_push_notification(notificationsBucket *start, char *perms, char *path, lo
    notificationsBucket *current = start;
 
    /*the following code is used to correctly verify if the path file is in the subtree of the current bucket*/
-   int plen = strlen(path) + 2;
-   char *tempName = malloc(sizeof(char) * plen);
+
+   char *tempName = isDir ? concatenate_path(path, "") : path;
    if(!tempName){
-      fprintf(stderr, "Error while allocating memory.\n");
+      fprintf(stderr, "Error while concatenating strings.\n");
       return -1;
    }
-   if(sprintf(tempName, isDir ? "%s/" : "%s", path) < 0){
-         fprintf(stderr, "%s\n", "nb_push_notification: error while creating the tempName string.\n");
-         return -1;
-   }
-
    do{
       char *monitoredPath = pmm_offset_to_pointer(current->off_path);
-      if(is_prefix(tempName, monitoredPath)){ //we work with absolute paths
+      if(is_prefix(tempName, monitoredPath) == 1){ //we work with absolute paths
          //the server need to receive this notification
          notification *newNotification = pmm_malloc(sizeof(notification));
          unsigned long newOffset = pmm_pointer_to_offset(newNotification);
@@ -200,7 +180,7 @@ int nb_push_notification(notificationsBucket *start, char *perms, char *path, lo
       }
 
    }while(1);
-   free(tempName);
+   if(isDir) free(tempName);
    return 0;
 }
 
@@ -311,7 +291,7 @@ void nb_print_notification_buckets(notificationsBucket *start){
          notification *currentNot = pmm_offset_to_pointer(current->off_list);
          do{
             char *mPath = pmm_offset_to_pointer(currentNot->off_path);
-            printf("------ path: %s\n", mPath);
+            printf("------ path: %s, type: %d\n", mPath, currentNot->type);
             //go to the next notification, if exists
             if(currentNot->off_next != 0){
                currentNot = pmm_offset_to_pointer(currentNot->off_next);

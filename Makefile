@@ -29,9 +29,9 @@ LOBJ=-c
 ####################################################################################################
 
 server-win : server.c win\utilities.c mem_management.obj filesystree.obj common_utilities.obj mapping_structure.obj \
-	mapping.obj myfile.obj settings_parser.obj syncmapping.obj notifications_bucket.obj
+	mapping.obj myfile.obj settings_parser.obj syncmapping.obj notifications_bucket.obj utilities.obj
 	$(WC) $(WNAME)"server" server.c mem_management.obj filesystree.obj common_utilities.obj \
-		mapping_structure.obj mapping.obj myfile.obj settings_parser.obj syncmapping.obj notifications_bucket.obj
+		mapping_structure.obj mapping.obj myfile.obj settings_parser.obj syncmapping.obj notifications_bucket.obj utilities.obj
 #	 $(WCLEAN) *.obj
 
 ####################################################################################################
@@ -63,8 +63,11 @@ settings_parser.obj : settings_parser.c
 mapping.obj : "win\mapping.c"
 	$(WC) $(WOBJ) win\mapping.c
 
-myfile.obj : "win\myfile.c" "win\utilities.c"
-	$(WC) $(WOBJ) win\myfile.c win\utilities.c
+myfile.obj : "win\myfile.c"
+	$(WC) $(OBJ) win\myfile.c
+
+utilities.obj :  win\utilities.c
+	$(WC) $(OBJ)  win\utilities.c
 
 syncmapping.obj : "win\syncmapping.c"
 	$(WC) $(WOBJ) win\syncmapping.c

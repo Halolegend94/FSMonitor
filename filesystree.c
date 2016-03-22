@@ -83,8 +83,7 @@ void __support_delete_child(fstNode *toDelete){
 
 	pmm_free(pmm_offset_to_pointer(toDelete->off_perms));
 	pmm_free(pmm_offset_to_pointer(toDelete->off_name));
-
-	if(toDelete->numChildren  == 0){
+	if(toDelete->numChildren  > 0){
 		//get the pointer to the children list
 		long *chdlist = pmm_offset_to_pointer(toDelete->off_children);
 
@@ -104,6 +103,7 @@ void __support_delete_child(fstNode *toDelete){
 // fst_delete_child
 // ===========================================================================
 int fst_delete_child(fstNode *father, fstNode *node){
+
 	if(father->numChildren == 0){
 		fprintf(stderr, "fst_delete_child: father node has no children.\n");
 		return -1;
@@ -133,6 +133,7 @@ int fst_delete_child(fstNode *father, fstNode *node){
 			j++;
 		}
 	}
+
 	if(!deleted){
 		fprintf(stderr, "fst_delete_child: entry not found.\n");
 		return -1;
@@ -156,7 +157,9 @@ int fst_add_child(fstNode *father, myFile *file, fstNode **node){
 		return -1;
 	}
 
+
 	if(node != NULL) *node = newNode;
+
 	int nlen = strlen(file->name);
 
 	char *pName = (char *) pmm_malloc(sizeof(char) * (nlen + 1));
@@ -219,8 +222,11 @@ int fst_add_child(fstNode *father, myFile *file, fstNode **node){
 // fst_add_children
 // ===========================================================================
 int fst_add_children(fstNode *father, myFileList *fList, fstNode **node){
-
-	/*allocate space for a new set of nodes*/
+	if(fList->count == 0){
+			fprintf(stderr, "fst_add_children: no children to add at node %s\n", pmm_offset_to_pointer(father->off_name));
+			return -1;
+	}
+		/*allocate space for a new set of nodes*/
 	fstNode *nodeList = (fstNode *) pmm_malloc(sizeof(fstNode) * fList->count);
 
 	if(!nodeList){

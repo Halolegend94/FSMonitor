@@ -157,31 +157,33 @@ int __support_first_scan(fstNode *root, char *path){
 		fprintf(stderr, "DEBUG: support first scan torna -2 in %s\n", path);
 		return -2;
 	}
-	fstNode *addedNodes;
-	if(fst_add_children(root, &fList, &addedNodes) == -1){
-		fprintf(stderr, "scan: error while adding nodes to the tree at \"%s\"\n", path);
-		return -1;
-	}
-	int i;
-	for(i = 0; i < fList.count; i++){
-		if(fList.list[i].isDir){ //recursive call
-			char *fullPath = concatenate_path(path, fList.list[i].name);
-			if(!fullPath){
-				fprintf(stderr, "scan: error while concantenating the path for %s\n",
-					fList.list[i].name);
+	if(fList.count > 0){
+		fstNode *addedNodes;
+		if(fst_add_children(root, &fList, &addedNodes) == -1){
+			fprintf(stderr, "scan: error while adding nodes to the tree at \"%s\"\n", path);
 			return -1;
-			}
-			if(__support_first_scan(&(addedNodes[i]), fullPath) == -1){
+		}
+		int i;
+		for(i = 0; i < fList.count; i++){
+			if(fList.list[i].isDir){ //recursive call
+				char *fullPath = concatenate_path(path, fList.list[i].name);
+				if(!fullPath){
+					fprintf(stderr, "scan: error while concantenating the path for %s\n",
+						fList.list[i].name);
 				return -1;
+				}
+				if(__support_first_scan(&(addedNodes[i]), fullPath) == -1){
+					return -1;
+				}
+				free(fullPath);
 			}
-			free(fullPath);
 		}
 	}
 	return 0;
 }
 
 // ===========================================================================
-// __first_scan TODO
+// __first_scan
 // ===========================================================================
 int __first_scan(fstNode *root, char *path){
 	//STEP 1: Add a path from the root node to the monitored node
@@ -202,7 +204,6 @@ int __first_scan(fstNode *root, char *path){
 		return -1;
 	}
 	strcpy(conc_path, tokens[0]); // copy "/" or "c:\"
-	printf("DEBUG %s\n", conc_path);
 	//for each token
 	for(i = 0; i < numTok; i++){
 		fstNode *nod;
@@ -278,7 +279,6 @@ int __first_scan(fstNode *root, char *path){
 			}
 		}
 	}
-	printf("DEBUG: %s\n", conc_path);
 	if(!current->isMonitored){
 		current->isMonitored = 1;
 		//we need to perform a scan
@@ -295,12 +295,19 @@ int __first_scan(fstNode *root, char *path){
 }
 
 // ===========================================================================
+// uodate
+// ===========================================================================
+int update(mappingStructure *str){
+	fstNode *root = pmm_offset_to_pointer(str->off_fileSystemTree);
+	return scan(root, "", str, 0);
+}
+
+// ===========================================================================
 // scan
 // ===========================================================================
 int scan(fstNode *currentNode, char *path, mappingStructure *str, int monitored){
 
 	if(!monitored)monitored = currentNode->isMonitored;
-
 	/*get the node's children*/
 	fstNode **nList;
 	int nListSize;
@@ -318,7 +325,7 @@ int scan(fstNode *currentNode, char *path, mappingStructure *str, int monitored)
 			fprintf(stderr, "scan: error while getting the directory content.\n");
 			return -1;
 		}else if(ret == -2){
-			//TODO
+			return 0;
 		}
 
 		int i, j;
@@ -327,8 +334,9 @@ int scan(fstNode *currentNode, char *path, mappingStructure *str, int monitored)
 			fprintf(stderr, "scan: error while allocating memory.\n");
 			return -1;
 		}
-
+		//DEB:printf("Inizio dir %s\n", path);
 		for(i = 0; i < fList.count; i++){
+
 			int ffound = 0;
 			char *fullFPath = concatenate_path(path, fList.list[i].name);
 			if(!fullFPath){
@@ -341,21 +349,20 @@ int scan(fstNode *currentNode, char *path, mappingStructure *str, int monitored)
 					fList.list[i].isDir  == nList[j]->isDir){
 					checkVector[j] = 1; //this means that it has not been deleted
 					ffound = 1;
-
 					//check changes
 					int ck_perms = 0;
 					int ck_size = 0;
 					int ck_mod = 0;
 
-					/*size*/
+					//size
 					if(nList[j]->size != fList.list[i].size) ck_size = 1;
-					/*perms*/
+					//perms
 					if(strcicmp(pmm_offset_to_pointer(nList[j]->off_perms), fList.list[i].perms) != 0) ck_perms = 1;
-					/*mode*/
-					if(nList[j]->lastWriteTimestamp == fList.list[i].lastWriteTimestamp) ck_mod = 1;
-
+					//mode
+					if(nList[j]->lastWriteTimestamp != fList.list[i].lastWriteTimestamp &&
+						nList[j]->size == fList.list[i].size) ck_mod = 1;
 					//update info
-					nList[j]->size = fList.list[i].size;
+				   nList[j]->size = fList.list[i].size;
 					nList[j]->lastWriteTimestamp = fList.list[i].lastWriteTimestamp;
 					pmm_free(pmm_offset_to_pointer(nList[j]->off_perms));
 					int newPermsLen = strlen(fList.list[i].perms) + 1;
@@ -364,17 +371,18 @@ int scan(fstNode *currentNode, char *path, mappingStructure *str, int monitored)
 						fprintf(stderr, "scan: error while allocating memory.\n");
 						return -1;
 					}
-					strcpy(np,fList.list[i].perms);
-
+					strcpy(np, fList.list[i].perms);
+					nList[j]->off_perms = pmm_pointer_to_offset(np);
+					//DEB:printf("fine modifiche\n");
 					//send notifications
-					if(ck_size){
+					if(ck_size == 1){
 						if(nb_push_notification(startBucket, fList.list[i].perms, fullFPath,
 							fList.list[i].size, fList.list[i].lastWriteTimestamp,
 								fList.list[i].isDir, dimension) == -1){
 							fprintf(stderr, "scan: error while pushing notification for %s.\n", fList.list[i].name);
 							return -1;
 						}
-					}else if(ck_mod){
+					}else if(ck_mod == 1){
 						if(nb_push_notification(startBucket, fList.list[i].perms, fullFPath,
 							fList.list[i].size, fList.list[i].lastWriteTimestamp,
 								fList.list[i].isDir, cambiocon) == -1){
@@ -382,7 +390,7 @@ int scan(fstNode *currentNode, char *path, mappingStructure *str, int monitored)
 							return -1;
 						}
 					}
-					if(ck_perms){
+					if(ck_perms == 1){
 						if(nb_push_notification(startBucket, fList.list[i].perms, fullFPath,
 							fList.list[i].size, fList.list[i].lastWriteTimestamp,
 								fList.list[i].isDir, perms) == -1){
@@ -390,9 +398,10 @@ int scan(fstNode *currentNode, char *path, mappingStructure *str, int monitored)
 							return -1;
 						}
 					}
+					break;
 				}
 			}
-
+			//DEB:printf("inizio processing nuovi file.\n");
 			if(!ffound){ //this means that its a new file
 				fstNode *newNode;
 				if(fst_add_child(currentNode, fList.list + i, &newNode) == -1){
@@ -413,12 +422,13 @@ int scan(fstNode *currentNode, char *path, mappingStructure *str, int monitored)
 		}
 
 		free(fList.list);
-
+		//DEB:printf("inizio cancellati.\n");
 		//finally we check for deleted nodes
-		for(j = 0; j < nListSize; j++){
+ 		for(j = 0; j < nListSize; j++){
 			if(checkVector[j] == 0){
 				char *name = pmm_offset_to_pointer(nList[j]->off_name);
 				char *fullFPath = concatenate_path(path, name);
+
 				if(!fullFPath){
 					fprintf(stderr, "scan: error while concantenating the path for %s\n",
 						name);
@@ -429,19 +439,21 @@ int scan(fstNode *currentNode, char *path, mappingStructure *str, int monitored)
 					fprintf(stderr, "scan: error while pushing notification for %s.\n", name);
 					return -1;
 				}
+				if(nList[j]->isDir) free(fullFPath);
 				if(fst_delete_child(currentNode, nList[j]) == -1){
 					fprintf(stderr, "scan: error while deleting a node.\n");
 					return -1;
 				}
 			}
 		}
-		free(nList);
+
+		if(!nList) free(nList);
 		if(fst_get_children(currentNode, &nList, &nListSize) == -1){
 			fprintf(stderr, "scan: error while getting the node's children.\n");
 			return -1;
 		}
 	}
-
+	//DEB:printf("Chiamate ricorsive.\n");
 	//recursive calls
 	int i;
 	for(i = 0; i < nListSize; i++){
@@ -457,6 +469,7 @@ int scan(fstNode *currentNode, char *path, mappingStructure *str, int monitored)
 				fprintf(stderr, "scan: error while processing \"%s\"\n", path);
 				return -1;
 			}
+			free(newPath);
 		}
 	}
 	return 0;
@@ -467,8 +480,8 @@ int scan(fstNode *currentNode, char *path, mappingStructure *str, int monitored)
 // ===========================================================================
 void print_mappingstructure_state(mappingStructure *str){
 	printf("-------------------MAPPING STRUCTURE----------------------------\n\n");
-	printf("SYSTREE:\n");
-	fst_print_tree(pmm_offset_to_pointer(str->off_fileSystemTree));
+	/*printf("SYSTREE:\n");
+	fst_print_tree(pmm_offset_to_pointer(str->off_fileSystemTree));*/
 	printf("\n\nNOTIFICATIONS BUCKETS\n");
 	nb_print_notification_buckets(pmm_offset_to_pointer(str->off_notifications));
 }

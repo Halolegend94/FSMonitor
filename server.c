@@ -44,8 +44,11 @@ int main(int argc, char **argv){
    initialize_mapping(&server);
    print_mappingstructure_state(server.structure);
    //start daemon
-   getchar();
-
+   while(getchar() != 'q'){
+      getchar();
+      update(server.structure);
+      print_mappingstructure_state(server.structure);
+   }
 
    //terminating cleanup
    delete_mapping(server.mapping);

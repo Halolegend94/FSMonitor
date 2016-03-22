@@ -2,6 +2,7 @@
    #define __NOTIFICATIONSBUCKET__
    #include "mem_management.h"
    #include "common_utilities.h"
+   #include "myfile.h"
    #include "received_notification.h"
    #include "common_definitions.h"
    #include <stdio.h>
@@ -103,11 +104,11 @@
    //
    // ===========================================================================
    int nb_read_notifications(notificationsBucket *start, receivedNotification **list, int *count, unsigned int serverID);
-   
+
    // ===========================================================================
    //
    // nb_exists_bucket
-   // Description: return the bucket that has the given serverID and a path 
+   // Description: return the bucket that has the given serverID and a path
    // Params:
    //    -  start: the first bucket of the linked list
    //    -  serverID: the ID of the server

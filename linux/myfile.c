@@ -175,13 +175,23 @@ char *get_current_directory(void){
 // concatenate_path
 // ===========================================================================
 char *concatenate_path(char *prefix, char *suffix){
-	int len = strlen(prefix) + strlen(suffix) + 2;
+	int l1 = strlen(path);
+	int l2 = strlen(lastpiece);
+	int len = l1 + l2 + 2;
 	char *temp = (char *) malloc(sizeof(char) * len);
 	if(!temp){
 		fprintf(stderr, "Error while allocating memory.\n");
 		return NULL;
 	}
-	if(sprintf(temp, "%s/%s", prefix, suffix) < 0){
+	int ret = 0;
+	if(l1 == 0){
+		ret = sprintf(temp, "%s", suffix);
+	}else if(prefix[0] == '/'){
+		ret = sprintf(temp, "%s%s", prefix, suffix);
+	}else{
+		ret = sprintf(temp, "%s/%s", prefix, suffix);
+	}
+	if(ret < 0){
 		fprintf(stderr, "Error while concatenating the path.\n");
 		free(temp);
 		return NULL;

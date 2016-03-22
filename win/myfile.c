@@ -1,5 +1,4 @@
 #include "../include/myfile.h"
-#include "utilities.c"
 #include <windows.h>
 
 #define ACL_SIZE 1024
@@ -100,11 +99,16 @@ int get_directory_content(char *dir, myFileList *fileList) {
 			fprintf(stderr, "Error while getting the full path for %s\n", findData.cFileName);
 			return -1;
 		}
-		int ret; //return value
+		int ret = 0; //return value
 		char *perms = __get_security_acls(fullPath, &ret);
-		if(!perms && ret){
+		if(ret == 1){
 			fprintf(stderr, "Error while getting information %s. Defaults are empty string.\n", findData.cFileName);
-			perms = "";
+			perms = malloc(sizeof(char));
+			if(!perms){
+				fprintf(stderr, "get_directory_content: error while allocating memory.\n");
+				return -1;
+			}
+			perms[0] = '\0';
 		}else if(!perms){
 			fprintf(stderr, "Error while getting information %s. Terminating.\n", findData.cFileName);
 			free(path);
@@ -142,7 +146,9 @@ char *concatenate_path(char *path, char *lastpiece){
 		return NULL;
 	}
 	int ret = 0;
-	if(path[l1-1] == '\\'){
+	if(l1 == 0){
+		ret = sprintf(temp, "%s", lastpiece);
+	}else if(path[l1-1] == '\\'){
 		ret = sprintf(temp, "%s%s", path, lastpiece);
 	}else{
 		ret = sprintf(temp, "%s\\%s", path, lastpiece);
@@ -154,6 +160,7 @@ char *concatenate_path(char *path, char *lastpiece){
 	}
 	return temp;
 }
+
 
 // ===========================================================================
 // is_absolute_path
@@ -169,18 +176,18 @@ int is_absolute_path(char *path){
 // ===========================================================================
 int __get_file_type(LPWIN32_FIND_DATA pFileData) {
 	DWORD type = T_OTHER;
-	if((pFileData->dwFileAttributes & FILE_ATTRIBUTE_SYSTEM) ||
-			(pFileData->dwFileAttributes & FILE_ATTRIBUTE_DEVICE) ||
-				(pFileData->dwFileAttributes & FILE_ATTRIBUTE_ARCHIVE) ||
-					(pFileData->dwFileAttributes & FILE_ATTRIBUTE_ENCRYPTED)) return T_OTHER;
-	BOOL isDir = (pFileData->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
-	BOOL isNormal = (pFileData->dwFileAttributes & FILE_ATTRIBUTE_NORMAL) != 0;
+	if(pFileData->dwFileAttributes & FILE_ATTRIBUTE_SYSTEM ||
+					(pFileData->dwFileAttributes & FILE_ATTRIBUTE_ENCRYPTED) ||
+							(pFileData->dwFileAttributes & FILE_ATTRIBUTE_DEVICE) ||
+							  (pFileData->dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) ||
+						      (pFileData->dwFileAttributes & FILE_ATTRIBUTE_TEMPORARY)) return T_OTHER;
+	BOOL isDir = (pFileData->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY);
 	if (isDir) {
 		if (strcmp(pFileData->cFileName, ".") == 0 || strcmp(pFileData->cFileName, "..") == 0)
 			type = T_OTHER;
 		else
 			type = T_DIR;
-	}else if(isNormal){
+	}else{
 			type = T_FILE;
 	}
 	return type;
@@ -275,6 +282,7 @@ char *__get_security_acls(char *filename, int *ret){
 	if(!GetFileSecurity(filename, DACL_SECURITY_INFORMATION, pSec, lenNeeded, &lenNeeded)){
 		fprintf(stderr, "An error occurred while getting security information.\n");
 		free(pSec);
+		*ret = 1;
 		return NULL;
 	}
 

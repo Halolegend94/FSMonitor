@@ -29,9 +29,9 @@ int strcicmp(char *a, char *b){
 // ==========================================================================
 int strcincmp(char *a, char *b, int len){
 	int i;
-	for (i = 0; i < len; a++, b++) {
+	for (i = 0; i < len; a++, b++, i++) {
 		int d = tolower(*a) - tolower(*b);
-		if (d != 0) return d;
+		if (d != 0 || *a == '\0') return d;
 	}
    return 0;
 }
