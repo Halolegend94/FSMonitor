@@ -53,13 +53,57 @@ int fst_get_children(fstNode *father, fstNode ***list, unsigned int *size){
 }
 
 // ===========================================================================
+// fst_contains_child
+// ===========================================================================
+int fst_contains_child(fstNode *father, char *name, fstNode **child){
+	//get the current node children
+	int numChld = 0;
+	fstNode **list;
+	if(fst_get_children(father, &list, &numChld) == -1){
+		fprintf(stderr, "fst_contains_child: error while getting the node's children.\n");
+		return -1;
+	}
+	if(numChld == 0) return 0;
+	int i;
+	for(i = 0; i < numChld; i++){
+		if(strcicmp(pmm_offset_to_pointer(list[i]->off_name), name) == 0){
+			*child = list[i];
+			return 1;
+		}
+	}
+	*child = NULL;
+	return 0;
+
+}
+
+// ===========================================================================
+// __support_delete_child
+// ===========================================================================
+void __support_delete_child(fstNode *toDelete){
+
+	pmm_free(pmm_offset_to_pointer(toDelete->off_perms));
+	pmm_free(pmm_offset_to_pointer(toDelete->off_name));
+
+	if(toDelete->numChildren  == 0){
+		//get the pointer to the children list
+		long *chdlist = pmm_offset_to_pointer(toDelete->off_children);
+
+		int i;
+		for(i = 0; i < toDelete->numChildren; i++){
+			fstNode *node = pmm_offset_to_pointer(chdlist[i]);
+			if(node->isDir){
+				__support_delete_child(node);
+			}
+		}
+		pmm_free(chdlist);
+	}
+	pmm_free(toDelete);
+}
+
+// ===========================================================================
 // fst_delete_child
 // ===========================================================================
 int fst_delete_child(fstNode *father, fstNode *node){
-	if(!father || !node){
-		fprintf(stderr, "fst_delete_child: params not valid.\n");
-		return -1;
-	}
 	if(father->numChildren == 0){
 		fprintf(stderr, "fst_delete_child: father node has no children.\n");
 		return -1;
@@ -76,22 +120,18 @@ int fst_delete_child(fstNode *father, fstNode *node){
 			return -1;
 		}
 	}
-	
+
 	int i, j;
 	//we need to find the entry that have to be deleted
 	int deleted = 0;
 	for(i = 0, j = 0; i < father->numChildren; i++){
 		if(node == pmm_offset_to_pointer(chdlist[i])){
-			//free resources inside the structs (perms and name)
-			pmm_free(pmm_offset_to_pointer(node->off_perms));
-			pmm_free(pmm_offset_to_pointer(node->off_name));
-			pmm_free(node); //free the struct
+			__support_delete_child(node);
 			deleted = 1;
 		}else{
 			newList[j] = chdlist[i];
 			j++;
 		}
-
 	}
 	if(!deleted){
 		fprintf(stderr, "fst_delete_child: entry not found.\n");
@@ -108,19 +148,14 @@ int fst_delete_child(fstNode *father, fstNode *node){
 // fst_add_child
 // ===========================================================================
 int fst_add_child(fstNode *father, myFile *file, fstNode **node){
-	if(!father || !file){
-		fprintf(stderr, "fst_add_child: one of the params is not valid.\n");
-		return -1;
-	}
-
 
 	/*allocate space for a new node*/
-	fstNode *newNode = (fstNode *) pmm_malloc(sizeof(fstNode));	
+	fstNode *newNode = (fstNode *) pmm_malloc(sizeof(fstNode));
 	if(!newNode){
 		fprintf(stderr, "Error while allocating memory with pmm in fst_add_child.\n");
 		return -1;
 	}
-	
+
 	if(node != NULL) *node = newNode;
 	int nlen = strlen(file->name);
 
@@ -184,11 +219,6 @@ int fst_add_child(fstNode *father, myFile *file, fstNode **node){
 // fst_add_children
 // ===========================================================================
 int fst_add_children(fstNode *father, myFileList *fList, fstNode **node){
-	if(!father || !fList){
-		fprintf(stderr, "fst_add_child: one of the params is not valid.\n");
-		return -1;
-	}
-
 
 	/*allocate space for a new set of nodes*/
 	fstNode *nodeList = (fstNode *) pmm_malloc(sizeof(fstNode) * fList->count);
@@ -200,8 +230,8 @@ int fst_add_children(fstNode *father, myFileList *fList, fstNode **node){
 	if(node != NULL) *node = nodeList;
 	int y; //counter
 	for(y = 0; y < fList->count; y++){
-	
-		myFile *file = &(fList->list[y]); 
+
+		myFile *file = &(fList->list[y]);
 		int nlen = strlen(file->name);
 
 		char *pName = (char *) pmm_malloc(sizeof(char) * (nlen + 1));
@@ -213,7 +243,7 @@ int fst_add_children(fstNode *father, myFileList *fList, fstNode **node){
 
 		strcpy(pName, file->name);
 		nodeList[y].off_name = pmm_pointer_to_offset(pName);
-		int plen = strlen(file->perms);	
+		int plen = strlen(file->perms);
 
 		char *pPerms = (char *) pmm_malloc(sizeof(char) * (plen + 1));
 		if(!pPerms){
@@ -233,7 +263,7 @@ int fst_add_children(fstNode *father, myFileList *fList, fstNode **node){
 		nodeList[y].isMonitored = 0;
 		nodeList[y].numChildren = 0;
 	}
-	/*we now add this new node to the father node*/
+	/*we now add this new list to the father node*/
 	father->numChildren += fList->count;
 	unsigned long *newList = (unsigned long *) pmm_malloc(sizeof(unsigned long) * (father->numChildren));
 	if(!newList){
@@ -263,93 +293,6 @@ int fst_add_children(fstNode *father, myFileList *fList, fstNode **node){
 	}
 	return 0;
 }
-// ===========================================================================
-// fst_get_name
-// ===========================================================================
-char *fst_get_name(fstNode *node){
-	if(!node){
-		fprintf(stderr, "fst_get_name: node is null.\n");
-		return NULL;
-	}
-	return pmm_offset_to_pointer(node->off_name);
-}
-
-// ===========================================================================
-// fst_get_perms
-// ===========================================================================
-char *fst_get_perms(fstNode *node){
-	if(!node){
-		fprintf(stderr, "fst_get_perms: node is null.\n");
-		return NULL;
-	}
-	return pmm_offset_to_pointer(node->off_perms);
-}
-
-// ===========================================================================
-// fst_get_size
-// ===========================================================================
-long long fst_get_size(fstNode *node){
-	if(!node){
-		fprintf(stderr, "fst_get_size: node is null.\n");
-		return -1;
-	}
-	return node->size;
-}
-
-// ===========================================================================
-// fst_get_wtime
-// ===========================================================================
-long long fst_get_wtime(fstNode *node){
-	if(!node){
-		fprintf(stderr, "fst_get_wtime: node is null.\n");
-		return -1;
-	}
-	return node->lastWriteTimestamp;
-}
-
-// ===========================================================================
-// fst_is_dir
-// ===========================================================================
-int fst_is_dir(fstNode *node){
-	if(!node){
-		fprintf(stderr, "fst_is_dir: node is null.\n");
-		return -1;
-	}
-	return node->isDir;
-}
-
-// ===========================================================================
-// fst_is_root
-// ===========================================================================
-int fst_is_root(fstNode *node){
-	if(!node){
-		fprintf(stderr, "fst_is_root: node is null.\n");
-		return -1;
-	}
-	return node->isRoot;
-}
-
-// ===========================================================================
-// fst_is_monitored
-// ===========================================================================
-int fst_is_monitored(fstNode *node){
-	if(!node){
-		fprintf(stderr, "fst_is_monitored: node is null.\n");
-		return -1;
-	}
-	return node->isMonitored;
-}
-
-// ===========================================================================
-// fst_get_num_children
-// ===========================================================================
-int fst_get_num_children(fstNode *node){
-	if(!node){
-		fprintf(stderr, "fst_get_num_children: node is null.\n");
-		return -1;
-	}
-	return node->numChildren;
-}
 
 // ===========================================================================
 // __fst_print_tree_rec [SUPPORT FUNCTION]
@@ -364,9 +307,10 @@ void __fst_print_tree_rec(fstNode *node, int lev){
 	}
 	int i;
 	for(i = 0; i < size; i++){
-		printf("%*s| - Nome: %s, perms: %s, mod: %lld, size: %lld\n", lev, " ", fst_get_name(list[i]),
-					fst_get_perms(list[i]), fst_get_wtime(list[i]), fst_get_size(list[i]));
-		if(fst_is_dir(list[i])) __fst_print_tree_rec(list[i], lev + 3); //recursive call
+		printf("%*s| - Nome: %s, perms: %s, mod: %lld, size: %lld\n", lev, " ",
+			(char *) pmm_offset_to_pointer(list[i]->off_name), (char *)	pmm_offset_to_pointer(list[i]->off_perms),
+			 list[i]->lastWriteTimestamp, list[i]->size);
+		if(list[i]->isDir) __fst_print_tree_rec(list[i], lev + 3); //recursive call
 	}
 }
 

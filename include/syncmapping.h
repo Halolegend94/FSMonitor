@@ -1,5 +1,5 @@
-#ifndef __SYNCSTART__
-  #define __SYNCSTART__
+#ifndef __SYNCMAPPING__
+  #define __SYNCMAPPING__
   #include <stdlib.h>
   #include <stdio.h>
 
@@ -10,7 +10,7 @@
   //
   // syncmapping_createlock
   // Description: this function creates a new file that will be used as lock
-  // by the application in order to coordinate accesses to the mapping. If the 
+  // by the application in order to coordinate accesses to the mapping. If the
   // file already exists, just opens it to create a pSyncMapping.
   // Params:
   //  - lock: used to store a pointer to a newly created pSyncMapping structure
@@ -52,5 +52,5 @@
   // Returns 0 on success, -1 otherwise
   //
   // ===========================================================================
-  int syncmapping_deletelock(pSyncMapping lock); 
+  int syncmapping_deletelock(pSyncMapping lock);
 #endif

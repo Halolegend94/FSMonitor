@@ -49,6 +49,19 @@
 
 	// ===========================================================================
 	//
+	// fst_contains_child
+	// Description: check if a node's children list contains a particular child.
+	// Params:
+	// 	-	father: a pointer the father fstNode
+	// 	-	name: a string containing the searched child name
+	//	-	child: a pointer to a location where to store the pointer to the child found.
+	// Returns -1 in case of error, 0 if the name is not found, 1 if it is found
+	//
+	// ===========================================================================
+	int fst_contains_child(fstNode *father, char *name, fstNode **child);
+
+	// ===========================================================================
+	//
 	// fst_delete_child
 	// Description: delete a child node from a father node.
 	// Params:
@@ -68,6 +81,7 @@
 	// 	-	file: a pointer to a struct myFile with the info
 	// 	-	node: a pointer to a location where a pointer to the added node
 	// 		will be stored.
+	// Returns -1 in case of error, 0 otherwise
 	//
 	// ===========================================================================
 	int fst_add_child(fstNode *father, myFile *file, fstNode **node);
@@ -81,102 +95,11 @@
 	// 	-	fList: a pointer to a struct myFileList with the files list
 	// 	-	nodeList: a pointer to a location where a pointer to the added
 	// 		list of nodes will be stored.
+	// Returns -1 in case of error, 0 otherwise
 	//
 	// ===========================================================================
 	int fst_add_children(fstNode *father, myFileList *fList, fstNode **list);
-
-
-
-	// ===========================================================================
-	//
-	// fst_get_name
-	// Description: retrieves the name of the file represented by the fstNode
-	// Params:
-	// 	-	node: a pointer to a fstNode
-	// Returns NULL in case of error, the name string otherwise.
-	//
-	// ===========================================================================
-	char *fst_get_name(fstNode *node);
-
-	// ===========================================================================
-	//
-	// fst_get_perms
-	// Description: gets the permissions string from a fstNode
-	// Params:
-	// 	-	node: a pointer to a fstNode
-	// Returns NULL in case of error, the perms string otherwise.
-	//
-	// ===========================================================================
-	char *fst_get_perms(fstNode *node);
-
-	// ===========================================================================
-	//
-	// fst_get_size
-	// Description: gets the size of the file represented by the fstNode
-	// Params:
-	// 	-	node: a pointer to a fstNode
-	// Returns -1 in case of error, the size otherwise
-	//
-	// ===========================================================================
-	long long fst_get_size(fstNode *node);
-
-	// ===========================================================================
-	//
-	// fst_get_wtime
-	// Description: gets the last write timestamp of the file represented by the
-	// fstNode.
-	// Params:
-	// 	-	node: a pointer to a fstNode
-	// Returns -1 in case of error, a poisitive value otherwise
-	//
-	// ===========================================================================
-	long long fst_get_wtime(fstNode *node);
-
-	// ===========================================================================
-	//
-	// fst_is_dir
-	// Description: function that tells if the node associated file is a directory
-	// Params:
-	// 	-	node: a pointer to a fstNode
-	// Returns 0 if false, 1 if true, -1 in case of error
-	//
-	// ===========================================================================
-	int fst_is_dir(fstNode *node);
-
-	// ===========================================================================
-	//
-	// fst_is_root
-	// Description: function that tells if the node associated file is the root
-	// Params:
-	// 	-	node: a pointer to a fstNode
-	// Returns 0 if false, 1 if true, -1 in case of error
-	//
-	// ===========================================================================
-	int fst_is_root(fstNode *node);
-
-	// ===========================================================================
-	//
-	// fst_is_monitored
-	// Description: function that tells if the subtree at that node is monitored
-	// by some server.
-	// Params:
-	// 	-	node: a pointer to a fstNode
-	// Returns 0 if false, 1 if true, -1 in case of error
-	//
-	// ===========================================================================
-	int fst_is_monitored(fstNode *node);
-
-	// ===========================================================================
-	//
-	// fst_get_num_children
-	// Description: function that returns the number of children of a fstNode
-	// Params:
-	// 	-	node: a pointer to a fstNode
-	// Returns -1 in case of error, a nonnegative number otherwise.
-	//
-	// ===========================================================================
-	int fst_get_num_children(fstNode *node);
-
+	
 	// ===========================================================================
 	//
 	// fst_print_tree (Debug function)

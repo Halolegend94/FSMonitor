@@ -36,13 +36,23 @@
    // ===========================================================================
    //
    // get_setting_by_name
-   // Description: retrieves a particular setting froma settingsList given the
-   // key value (the setting name)
+   // Description: retrieves a particular setting value from a settingsList given the
+   // key  (the setting name)
    // Params:
    //    -  name: the setting name
    //    -  list: a pointer to a settingsList where to search for the setting
-   // Returns: a pointer to a setting in case of success, NULL otherwise
+   // Returns: a pointer to a string in case of success, NULL otherwise
    //
    // ===========================================================================
-   setting *get_setting_by_name(char *name, settingsList *list);
+   char *get_setting_by_name(char *name, settingsList *list);
+
+   // ===========================================================================
+   //
+   // free_settings_structure
+   // Description: release the memory allocated for a settingsList
+   // Params:
+   //    -  list: a pointer to a settingsList to be freed
+   //
+   // ===========================================================================
+   void free_settings_structure(settingsList *str);
 #endif

@@ -5,6 +5,7 @@
 #include "filesystree.h"
 #include "mem_management.h"
 #include "common_utilities.h"
+#include "myfile.h"
 #include "received_notification.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,8 +18,8 @@ typedef struct _mappingStructure{
 	unsigned int daemonServer;  //indicates witch is the server that runs the deamon
 	unsigned long off_notifications; //offset to notifications bucket
 	unsigned int refreshTime;   //how much time needs to pass before another
-				    //check is done by the deamon
-
+				    					//check is done by the deamon
+	unsigned int idCounter;    //incremented by 1 each time a server registers.
 } mappingStructure;
 
 /*function prototypes*/

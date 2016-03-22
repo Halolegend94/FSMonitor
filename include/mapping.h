@@ -17,7 +17,7 @@
 	// 	- *map: pointer to a mapping structure
 	//	- *name: name of the file (also, on windows, of the mapping)
 	//	- size: size of the mapping
-	// Returns -1 in case of error, 0 otherwise
+	// Returns -1 in case of error, 0 if the mapping has been created, 1 if the mapping was already there
 	//
 	// ===========================================================================
 	int create_mapping(pMapping *map, char *name, long long size);

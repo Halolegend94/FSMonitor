@@ -1,4 +1,5 @@
 #include "../include/myfile.h"
+#include "utilities.c"
 #include <windows.h>
 
 #define ACL_SIZE 1024
@@ -19,9 +20,9 @@
 
 /*function prototypes*/
 int __get_file_type(LPWIN32_FIND_DATA);
-char *__get_account_name(DWORD*);
+char *__get_account_name(DWORD*, int *ret);
 char *__get_mask_string(DWORD);
-char *__get_security_acls(char*);
+char *__get_security_acls(char*, int *ret);
 
 // ===========================================================================
 // get_directory_content
@@ -41,7 +42,6 @@ int get_directory_content(char *dir, myFileList *fileList) {
 	}
 	strcpy(path, dir);
 	strcat(path, "\\*");
-
 	//now we allocate a MAXFILE amount of space for fileList
 	fileList->list = (myFile *)malloc(MAXFILES * sizeof(myFile));
 	if (!fileList->list) {
@@ -53,10 +53,10 @@ int get_directory_content(char *dir, myFileList *fileList) {
 
 	searchHandle = FindFirstFile(path, &findData);
 	if (searchHandle == INVALID_HANDLE_VALUE) {
-		fprintf(stderr, "Invalid search handle returned.\n");
+		fprintf(stderr, "Invalid search handle returned (%s).\n", path);
 		free(path);
 		free(fileList->list);
-		return -1;
+		return -2;
 	}
 	do { //for each file in dir...
 		if (fileList->count >= currentCapacity) { //if the list is full, reallocate memory
@@ -100,9 +100,13 @@ int get_directory_content(char *dir, myFileList *fileList) {
 			fprintf(stderr, "Error while getting the full path for %s\n", findData.cFileName);
 			return -1;
 		}
-		char *perms = __get_security_acls(fullPath);
-		if(!perms){
-			fprintf(stderr, "Error while getting the permitions for %s\n.", findData.cFileName);
+		int ret; //return value
+		char *perms = __get_security_acls(fullPath, &ret);
+		if(!perms && ret){
+			fprintf(stderr, "Error while getting information %s. Defaults are empty string.\n", findData.cFileName);
+			perms = "";
+		}else if(!perms){
+			fprintf(stderr, "Error while getting information %s. Terminating.\n", findData.cFileName);
 			free(path);
 			free(fullPath);
 			free(fileList->list);
@@ -129,13 +133,21 @@ int get_directory_content(char *dir, myFileList *fileList) {
 // concatenate_path
 // ===========================================================================
 char *concatenate_path(char *path, char *lastpiece){
-	int len = strlen(path) + strlen(lastpiece) + 2;
+	int l1 = strlen(path);
+	int l2 = strlen(lastpiece);
+	int len = l1 + l2 + 2;
 	char *temp = (char *) malloc(sizeof(char) * len);
 	if(!temp){
 		fprintf(stderr, "Error while allocating memory.\n");
 		return NULL;
 	}
-	if(sprintf(temp, "%s\\%s", path, lastpiece) < 0){
+	int ret = 0;
+	if(path[l1-1] == '\\'){
+		ret = sprintf(temp, "%s%s", path, lastpiece);
+	}else{
+		ret = sprintf(temp, "%s\\%s", path, lastpiece);
+	}
+	if(ret < 0){
 		fprintf(stderr, "Error while concatenating the path.\n");
 		free(temp);
 		return NULL;
@@ -156,13 +168,20 @@ int is_absolute_path(char *path){
 // __get_file_type [PRIVATE FUNCTION]
 // ===========================================================================
 int __get_file_type(LPWIN32_FIND_DATA pFileData) {
-	DWORD type = T_FILE;
+	DWORD type = T_OTHER;
+	if((pFileData->dwFileAttributes & FILE_ATTRIBUTE_SYSTEM) ||
+			(pFileData->dwFileAttributes & FILE_ATTRIBUTE_DEVICE) ||
+				(pFileData->dwFileAttributes & FILE_ATTRIBUTE_ARCHIVE) ||
+					(pFileData->dwFileAttributes & FILE_ATTRIBUTE_ENCRYPTED)) return T_OTHER;
 	BOOL isDir = (pFileData->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+	BOOL isNormal = (pFileData->dwFileAttributes & FILE_ATTRIBUTE_NORMAL) != 0;
 	if (isDir) {
 		if (strcmp(pFileData->cFileName, ".") == 0 || strcmp(pFileData->cFileName, "..") == 0)
 			type = T_OTHER;
 		else
 			type = T_DIR;
+	}else if(isNormal){
+			type = T_FILE;
 	}
 	return type;
 }
@@ -170,10 +189,11 @@ int __get_file_type(LPWIN32_FIND_DATA pFileData) {
 // ===========================================================================
 // __get_account_name [PRIVATE FUNCTION]
 // ===========================================================================
- char *__get_account_name(DWORD *sid){
+ char *__get_account_name(DWORD *sid, int *ret){
 	 DWORD size = 0;
 	 DWORD domsize = 0;
 	 SID_NAME_USE use;
+	 *ret = 0; //return value
 	 LookupAccountSid(NULL, sid, NULL, &size, NULL, &domsize, &use);
 	 char *name = malloc(size * sizeof(char));
 	 if(!name){
@@ -181,8 +201,9 @@ int __get_file_type(LPWIN32_FIND_DATA pFileData) {
 		 return NULL;
 	 }
 	 if(!LookupAccountSid(NULL, sid, name, &size, NULL, &domsize, &use)){
-		 fprintf(stderr, "Error while getting the account name size.\n");
+		 fprintf(stderr, "%s\n", GetLastErrorAsString());
 		 free(name);
+		 *ret = 1;
 		 return NULL;
 	 }
 	 return name;
@@ -233,7 +254,7 @@ char *__get_mask_string(DWORD mask){
 // ===========================================================================
 // __get_security_acls [PRIVATE FUNCTION]
 // ===========================================================================
-char *__get_security_acls(char *filename){
+char *__get_security_acls(char *filename, int *ret){
 	PSECURITY_DESCRIPTOR pSec = NULL;
 	DWORD lenNeeded, iAce;
 	BOOL fileDacl, aclDefaulted;
@@ -292,7 +313,7 @@ char *__get_security_acls(char *filename){
 			free(tempPerm);
 			return NULL;
 		}
-		char *sidname = __get_account_name(&pAce->SidStart);
+		char *sidname = __get_account_name(&pAce->SidStart, ret);
 		if(!sidname){
 			free(pSec);
 			free(perms);
@@ -387,15 +408,9 @@ int delete_file(char *filename) {
 // is_directory
 // ===========================================================================
 int is_directory(char *dir){
-	DWORD att = GetFileAttributes(dir);
-	if(att == INVALID_FILE_ATTRIBUTES){
-		fprintf(stderr, "Error while getting the file attributes.\n");
-		return -1;
-	}
-	if(att & FILE_ATTRIBUTE_DIRECTORY)
-		return 1;
-	else
-		return 0;
+	DWORD att;
+	att = GetFileAttributes(dir);
+	return (att != INVALID_FILE_ATTRIBUTES && att & FILE_ATTRIBUTE_DIRECTORY);
 }
 
 // ===========================================================================
@@ -486,6 +501,20 @@ int tokenize_path(char *path, char ***tokenList, int *tokenListSize){
 	return 0;
 }
 
+// ===========================================================================
+// get_file_info
+// ===========================================================================
+int get_file_info(myFileList *fileList, char *filename, myFile **file){
+	int i;
+	for(i = 0; i < fileList->count; i++){
+		if(strcicmp(fileList->list[i].name, filename) == 0){
+			*file = &(fileList->list[i]);
+			return 1;
+		}
+	}
+	*file = NULL;
+	return 0;
+}
 
 // ===========================================================================
 // print_file_info [DEBUG]

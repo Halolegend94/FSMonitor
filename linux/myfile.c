@@ -38,7 +38,7 @@ int get_directory_content(char *dir, myFileList *fileList){
 	if(!dpointer){
 		fprintf(stderr, "Error while opening the directory.\n");
 		free(fileList->list);
-		return -1;
+		return -2;
 	}
 	dirEntry = readdir(dpointer);
 	/*scan directory*/
@@ -65,9 +65,15 @@ int get_directory_content(char *dir, myFileList *fileList){
 		}
 		//set the file name
 		strcpy(fileList->list[fileList->count].name, dirEntry->d_name);
+		//we need the fullpath name
+		char *fullPath = concatenate_path(dir, dirEntry->d_name);
+		if(!fullPath){
+			fprintf(stderr, "Error while getting the full path for %s\n", dirEntry->d_name);
+			return -1;
+		}
 		struct stat fileData;
 		mode_t mode;
-		int result = stat(dirEntry->d_name, &fileData);
+		int result = stat(fullPath, &fileData);
 		if(result == -1){
 			fprintf(stderr, "Error while retrieving file \"%s\" information.\n", dirEntry->d_name);
 			free(fileList->list);
@@ -91,6 +97,7 @@ int get_directory_content(char *dir, myFileList *fileList){
 			return -1;
 		}
 		fileList->count++;
+		free(fullPath);
 		//read next entry
 		dirEntry = readdir(dpointer);
 	}
@@ -276,6 +283,22 @@ int tokenize_path(char *path, char ***tokenList, int *tokenListSize){
 	}
 	return 0;
 }
+
+// ===========================================================================
+// get_file_info
+// ===========================================================================
+int get_file_info(myFileList *fileList, char *filename, myFile **file){
+	int i;
+	for(i = 0; i < fileList->count; i++){
+		if(strcicmp(fileList->list[i].name, filename) == 0){
+			*file = &(fileList->list[i]);
+			return 1;
+		}
+	}
+	*file = NULL;
+	return 0;
+}
+
 
 // ===========================================================================
 // print_file_info [DEBUG]

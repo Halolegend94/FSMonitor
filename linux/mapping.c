@@ -15,7 +15,7 @@ struct mapping {
 // __support_mapping [PRIVATE FUNCTION]
 // ===========================================================================
 int __support_mapping(struct mapping *map, long long size) {
-	map->pointer = mmap(NULL, (size_t) size, PROT_READ | PROT_WRITE, MAP_SHARED, 
+	map->pointer = mmap(NULL, (size_t) size, PROT_READ | PROT_WRITE, MAP_SHARED,
 	map->file, 0);
 	if (map->pointer == MAP_FAILED) {
 		fprintf(stderr, "mmap failed.\n");
@@ -40,10 +40,8 @@ int create_mapping(struct mapping **map, char *name, long long size) {
 	(*map)->mapname = name;
 	(*map)->file = open(name, O_CREAT | O_RDWR | O_EXCL, 0666);
 	if ((*map)->file == -1) {
-		fprintf(stderr, "An error occurred while create/opening the file associated \
-		to the mapping.\n");
 		free(*map);
-		return -1;
+		return 1;
 	}
 	if(ftruncate((*map)->file, size) == -1){
 			fprintf(stderr, "An error occurred while truncating the file.\n");

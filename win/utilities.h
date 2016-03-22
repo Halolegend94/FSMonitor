@@ -16,11 +16,4 @@ The utilities library contains functions that don't belong in any other library.
 // ===========================================================================
 void sleep(int seconds);
 
-// ===========================================================================
-//
-// get_current_directory
-// Description: return a string that contains the current directory full path
-// Return the pointer to the string or NULL in case of error
-//
-// ===========================================================================
-char *get_current_directory(void);
+char *GetLastErrorAsString();

@@ -34,16 +34,32 @@ int __line(setting*);
 
 
 // ===========================================================================
+// free_settings_structure
+// ===========================================================================
+void free_settings_structure(settingsList *str){
+	int i;
+	for(i = 0; i < str->count; i++){
+		free(str->list[i].name);
+	}
+	free(str->list);
+}
+
+// ===========================================================================
 // get_setting_by_name
 // ===========================================================================
-setting *get_setting_by_name(char *name, settingsList *list){
-	if(!name || !list){
-		fprintf(stderr, "get_setting_by_name: params not valid.\n");
-		return NULL;
-	}
+char *get_setting_by_name(char *name, settingsList *list){
 	int i;
 	for(i = 0; i < list->count; i++){
-		if(strcmp(list->list[i].name, name) == 0) return (list->list + i);
+		if(strcmp(list->list[i].name, name) == 0){
+			int len = strlen(list->list[i].value) + 1;
+			char *tmp = malloc(sizeof(char) * len);
+			if(!tmp){
+				fprintf(stderr, "get_setting_by_name: error while allocating memory.\n");
+				return NULL;
+			}
+			strcpy(tmp,list->list[i].value);
+			return tmp;
+		}
 	}
 	return NULL;
 }
@@ -83,6 +99,7 @@ int parse_settings(char *filename, settingsList *settings){
 			}
 		}
 		setting set;
+
 		int rval = __line(&set);
 		if(rval == -1){
 			return -1;

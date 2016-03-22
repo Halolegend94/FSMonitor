@@ -23,9 +23,8 @@ int create_mapping(struct mapping **map, char *name, long long size) {
 	(*map)->fileHandle = CreateFile(name, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_WRITE | FILE_SHARE_READ, NULL,
 		CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
 	if ((*map)->fileHandle == INVALID_HANDLE_VALUE) {
-		fprintf(stderr, "Error while creating the file to be mapped in memory.\n");
 		free(*map);
-		return -1;
+		return 1;
 	}
 	((*map)->size).QuadPart = size;
 	(*map)->mapHandle = CreateFileMapping((*map)->fileHandle, NULL, PAGE_READWRITE,

@@ -112,10 +112,10 @@ void pmm_print_memory_state(){
       unsigned long start =  pmm_pointer_to_offset(p);
       unsigned long end = start + p->size + sizeof(metadata) - 1;
       printf("\n");
-   	printf("---------- %u: start block %u offset. Libero: %d\n", start, counter, p->isFree);
+   	printf("---------- %lu: start block %lu offset. Libero: %lu\n", start, counter, p->isFree);
    	printf("|          |\n");
    	printf("|          |\n");
-   	printf("-----------%u: end block %u offset\n", end, counter);
+   	printf("-----------%lu: end block %lu offset\n", end, counter);
    	printf("|          |\n");
       counter++;
       p = (metadata *)(((char *) p) + p->size + sizeof(metadata));

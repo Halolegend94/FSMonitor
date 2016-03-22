@@ -31,10 +31,23 @@ typedef struct _myFileList {
 // 	- dir: a string that represents a directory
 // 	- fileList: a pointer to a variable of type myFileList that will receive
 //			the information.
-// Returns 0 in case of success, -1 otherwise
+// Returns 0 in case of success, -1 in case of error, -2 if the path is no longer available
 //
 // ===========================================================================
 int get_directory_content(char *dir, myFileList *fileList);
+
+// ===========================================================================
+//
+// get_file_info
+// Description: this function gets information about a a file given a list of file
+// Params:
+// 	- fileList: a pointer to a variable of type myFileList
+// 	- filename: the name of the file
+//      - file: a pointer to a location where a pointer to the file struct will be saved
+// Returns 1 if the file has been found, 0 otherwise
+//
+// ===========================================================================
+int get_file_info(myFileList *fileList, char *filename, myFile **file);
 
 // ===========================================================================
 //
@@ -103,6 +116,16 @@ int is_absolute_path(char *path);
 //
 // ===========================================================================
 int tokenize_path(char *path, char ***tokenList, int *tokenListSize);
+
+// ===========================================================================
+//
+// get_file_info
+// Description: given a list of myFile objcects, this function sets the parameter
+// file to point to the myFile that has "filename" as name.
+// Returns 1 if the file is in the list, 0 otherwise (file is set at NULL)
+//
+// ===========================================================================
+int get_file_info(myFileList *fileList, char *filename, myFile **file);
 
 // ===========================================================================
 //

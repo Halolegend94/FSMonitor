@@ -19,8 +19,8 @@
 // pmm_initialize_management
 // Descripton: when called with NULL as returnPointer, this function initializes the memory management
 // by creating the first free block at the very beginning of the memory area. This represents
-// the whole free memory available. If a not NULL returnPointer is passed, then the address of
-// the first byte of the first block of memory (used or not).
+// the whole free memory available. If a not NULL returnPointer is passed, then it is set to the the address of
+// the first byte of the first block of memory.
 // If an error has occurred, -1 is returned, 0 otherwise.
 //
 // ===========================================================================
