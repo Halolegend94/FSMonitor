@@ -13,13 +13,20 @@ int nb_create(notificationsBucket **firstElement, unsigned int serverID, char *p
       fprintf(stderr, "nb_create: error while allocating memory.\n");
       return -1;
    }
-   char *mPath =  concatenate_path(pathName, "");
-   if(!mPath){
+   char *Pname =  concatenate_path(pathName, "");
+   if(!Pname){
       fprintf(stderr, "Error while concatenating strings.\n");
       return -1;
    }
+   char *mapName = pmm_malloc(sizeof(char) * (strlen(Pname) + 1));
+   if(!mapName){
+     fprintf(stderr, "nb_add_bucket: error while allocating memory.\n");
+     return -1;
+   }
+   strcpy(mapName, Pname);
+   free(Pname);
    (*firstElement)->serverID = serverID;
-   (*firstElement)->off_path = pmm_pointer_to_offset(mPath);
+   (*firstElement)->off_path = pmm_pointer_to_offset(mapName);
    (*firstElement)->off_next = 0;
    (*firstElement)->off_list = 0;
    (*firstElement)->off_last_notification = 0;
@@ -33,7 +40,7 @@ int nb_add_bucket(notificationsBucket *start, unsigned int serverID, char *pathN
    notificationsBucket *lastBucket = start;
    //go to the last bucket
    while(lastBucket->off_next != 0){
-      lastBucket = pmm_offset_to_pointer(lastBucket->off_next);
+     lastBucket = pmm_offset_to_pointer(lastBucket->off_next);
    }
 
    notificationsBucket *newBucket = pmm_malloc(sizeof(notificationsBucket));
@@ -46,8 +53,15 @@ int nb_add_bucket(notificationsBucket *start, unsigned int serverID, char *pathN
       fprintf(stderr, "Error while concatenating strings.\n");
       return -1;
    }
+   char *mapName = pmm_malloc(sizeof(char) * (strlen(Pname) + 1));
+   if(!mapName){
+     fprintf(stderr, "nb_add_bucket: error while allocating memory.\n");
+     return -1;
+   }
+   strcpy(mapName, Pname);
+   free(Pname);
    newBucket->serverID = serverID;
-   newBucket->off_path = pmm_pointer_to_offset(Pname);
+   newBucket->off_path = pmm_pointer_to_offset(mapName);
    newBucket->off_list = 0;
    newBucket->off_next = 0;
    newBucket->off_last_notification = 0;

@@ -1,5 +1,10 @@
 #include "include/mapping_structure.h"
 
+//function prototypes
+int __dfs_clean_subtree(fstNode *root);
+int __delete_server_subtree(fstNode *root, char **tokens, int index, int target);
+int __first_scan(fstNode *root, char *path);
+
 // ===========================================================================
 // initialize__mapping_structure
 // ===========================================================================
@@ -32,6 +37,7 @@ int initialize_mapping_structure(char *memoryBlock, mappingStructure **str, unsi
 				return -2; //path no longer available
 		}
 		/*update refresh time if necessary*/
+		printf("ref, %d\n",	(*str)->refreshTime);
 		(*str)->refreshTime = (*str)->refreshTime > refTime ? refTime : (*str)->refreshTime;
 		(*str)->serverCounter = (*str)->serverCounter + 1;
 		/*create an id for the server*/
@@ -126,7 +132,7 @@ int unregister_server(mappingStructure *str, unsigned int sid, char **pathList, 
 			  return -1;
 		  }
 		  do{
-			  if(strcicmp(tPath, pmm_offset_to_pointer(current->off_path)) == 0){
+			  if(fname_compare(tPath, pmm_offset_to_pointer(current->off_path)) == 0){
 				  //pathList[i] is monitored
 				  monitored = 1;
 				  break;
@@ -213,7 +219,6 @@ int __support_first_scan(fstNode *root, char *path){
 		fprintf(stderr, "scan: error while getting the directory content.\n");
 		return -1;
 	}else if(ret == -2){
-		fprintf(stderr, "DEBUG: support first scan torna -2 in %s\n", path);
 		return -2;
 	}
 	if(fList.count > 0){
@@ -358,7 +363,7 @@ int __first_scan(fstNode *root, char *path){
 }
 
 // ===========================================================================
-// uodate
+// update
 // ===========================================================================
 int update(mappingStructure *str){
 	fstNode *root = pmm_offset_to_pointer(str->off_fileSystemTree);
@@ -372,7 +377,7 @@ int scan(fstNode *currentNode, char *path, mappingStructure *str, int monitored)
 
 	if(!monitored)monitored = currentNode->isMonitored;
 	/*get the node's children*/
-	fstNode **nList;
+	fstNode **nList = NULL;
 	int nListSize;
 	if(fst_get_children(currentNode, &nList, &nListSize) == -1){
 		fprintf(stderr, "scan: error while getting the node's children.\n");
@@ -408,7 +413,8 @@ int scan(fstNode *currentNode, char *path, mappingStructure *str, int monitored)
 				return -1;
 			}
 			for(j = 0; j < nListSize; j++){
-				if(strcicmp(pmm_offset_to_pointer(nList[j]->off_name), fList.list[i].name) == 0 &&
+				//printf("j: %d/%d - %p\n",j, nListSize, (nList[j]));
+				if(fname_compare(pmm_offset_to_pointer((nList[j])->off_name), fList.list[i].name) == 0 &&
 					fList.list[i].isDir  == nList[j]->isDir){
 					checkVector[j] = 1; //this means that it has not been deleted
 					ffound = 1;
@@ -420,13 +426,16 @@ int scan(fstNode *currentNode, char *path, mappingStructure *str, int monitored)
 					//size
 					if(nList[j]->size != fList.list[i].size) ck_size = 1;
 					//perms
-					if(strcicmp(pmm_offset_to_pointer(nList[j]->off_perms), fList.list[i].perms) != 0) ck_perms = 1;
+					if(fname_compare(pmm_offset_to_pointer(nList[j]->off_perms), fList.list[i].perms) != 0){
+					 ck_perms = 1;
+					 }
 					//mode
 					if(nList[j]->lastWriteTimestamp != fList.list[i].lastWriteTimestamp &&
 						nList[j]->size == fList.list[i].size) ck_mod = 1;
 					//update info
-				   nList[j]->size = fList.list[i].size;
+				  nList[j]->size = fList.list[i].size;
 					nList[j]->lastWriteTimestamp = fList.list[i].lastWriteTimestamp;
+					//printf("name: %s, perm %d\n", pmm_offset_to_pointer(nList[j]->off_name), nList[j]->off_perms);
 					pmm_free(pmm_offset_to_pointer(nList[j]->off_perms));
 					int newPermsLen = strlen(fList.list[i].perms) + 1;
 					char *np = pmm_malloc(sizeof(char) * newPermsLen);
@@ -438,6 +447,7 @@ int scan(fstNode *currentNode, char *path, mappingStructure *str, int monitored)
 					nList[j]->off_perms = pmm_pointer_to_offset(np);
 					//DEB:printf("fine modifiche\n");
 					//send notifications
+
 					if(ck_size == 1){
 						if(nb_push_notification(startBucket, fList.list[i].perms, fullFPath,
 							fList.list[i].size, fList.list[i].lastWriteTimestamp,
@@ -464,6 +474,8 @@ int scan(fstNode *currentNode, char *path, mappingStructure *str, int monitored)
 					break;
 				}
 			}
+
+
 			//DEB:printf("inizio processing nuovi file.\n");
 			if(!ffound){ //this means that its a new file
 				fstNode *newNode;
@@ -485,6 +497,7 @@ int scan(fstNode *currentNode, char *path, mappingStructure *str, int monitored)
 		}
 
 		free(fList.list);
+
 		//finally we check for deleted nodes
  		for(j = 0; j < nListSize; j++){
 			if(checkVector[j] == 0){
@@ -502,6 +515,7 @@ int scan(fstNode *currentNode, char *path, mappingStructure *str, int monitored)
 					return -1;
 				}
 				if(nList[j]->isDir) free(fullFPath);
+				//printf("del: %p\n", nList[j]);
 				if(fst_delete_child(currentNode, nList[j]) == -1){
 					fprintf(stderr, "scan: error while deleting a node.\n");
 					return -1;
@@ -509,7 +523,10 @@ int scan(fstNode *currentNode, char *path, mappingStructure *str, int monitored)
 			}
 		}
 
-		if(!nList) free(nList);
+		if(!nList){
+			free(nList);
+			nList = NULL;
+		}
 		if(fst_get_children(currentNode, &nList, &nListSize) == -1){
 			fprintf(stderr, "scan: error while getting the node's children.\n");
 			return -1;
@@ -519,7 +536,7 @@ int scan(fstNode *currentNode, char *path, mappingStructure *str, int monitored)
 	//recursive calls
 	int i;
 	for(i = 0; i < nListSize; i++){
-		if(nList[i]->isDir){
+		if(nList[i]->isDir == 1){
 			char *newPath = concatenate_path(path, pmm_offset_to_pointer(nList[i]->off_name));
 			if(!newPath){
 				fprintf(stderr, "scan: error while concantenating the path for %s\n",
@@ -534,6 +551,10 @@ int scan(fstNode *currentNode, char *path, mappingStructure *str, int monitored)
 			free(newPath);
 		}
 	}
+	if(!nList){
+		free(nList);
+		nList = NULL;
+	}
 	return 0;
 }
 
@@ -542,8 +563,8 @@ int scan(fstNode *currentNode, char *path, mappingStructure *str, int monitored)
 // ===========================================================================
 void print_mappingstructure_state(mappingStructure *str){
 	printf("-------------------MAPPING STRUCTURE----------------------------\n\n");
-	/*printf("SYSTREE:\n");
-	fst_print_tree(pmm_offset_to_pointer(str->off_fileSystemTree));*/
+	printf("SYSTREE:\n");
+	//fst_print_tree(pmm_offset_to_pointer(str->off_fileSystemTree));
 	printf("\n\nNOTIFICATIONS BUCKETS\n");
 	nb_print_notification_buckets(pmm_offset_to_pointer(str->off_notifications));
 }

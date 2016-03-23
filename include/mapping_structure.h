@@ -4,7 +4,6 @@
 #include "notifications_bucket.h"
 #include "filesystree.h"
 #include "mem_management.h"
-#include "common_utilities.h"
 #include "myfile.h"
 #include "received_notification.h"
 #include <stdio.h>
@@ -27,8 +26,23 @@ typedef struct _mappingStructure{
 // ===========================================================================
 // initialize__mapping_structure
 // ===========================================================================
-int initialize_mapping_structure(char *memoryBlock, mappingStructure **str, unsigned int refTime,
-												char *path);
+int initialize_mapping_structure(char *memoryBlock, mappingStructure **str, unsigned int refTime, char *path);
+
+
+// ===========================================================================
+// scan
+// ===========================================================================
+int scan(fstNode *currentNode, char *path, mappingStructure *str, int monitored);
+
+// ===========================================================================
+// uodate
+// ===========================================================================
+int update(mappingStructure *str);
+
+// ===========================================================================
+// print_mappingstructure_state
+// ===========================================================================
+void print_mappingstructure_state(mappingStructure *str);
 
 // ===========================================================================
 // generate_server_id

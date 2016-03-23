@@ -28,9 +28,9 @@ LOBJ=-c
 #
 ####################################################################################################
 
-server-win : server.c win\utilities.c mem_management.obj filesystree.obj common_utilities.obj mapping_structure.obj \
+server-win : server.c win\utilities.c mem_management.obj filesystree.obj mapping_structure.obj \
 	mapping.obj myfile.obj settings_parser.obj syncmapping.obj notifications_bucket.obj utilities.obj
-	$(WC) $(WNAME)"server" server.c mem_management.obj filesystree.obj common_utilities.obj \
+	$(WC) $(WNAME)"server" server.c mem_management.obj filesystree.obj  \
 		mapping_structure.obj mapping.obj myfile.obj settings_parser.obj syncmapping.obj notifications_bucket.obj utilities.obj
 #	 $(WCLEAN) *.obj
 
@@ -46,9 +46,6 @@ filesystree.obj : filesystree.c
 
 notifications_bucket.obj : notifications_bucket.c
 	$(WC) $(WOBJ) notifications_bucket.c
-
-common_utilities.obj : common_utilities.c
-	$(WC) $(WOBJ) common_utilities.c
 
 mem_management.obj : mem_management.c
 	$(WC) $(WOBJ) mem_management.c
@@ -79,9 +76,9 @@ syncmapping.obj : "win\syncmapping.c"
 #
 ####################################################################################################
 
-server-linux : server.c mem_management.o filesystree.o common_utilities.o mapping_structure.o \
+server-linux : server.c mem_management.o filesystree.o mapping_structure.o \
 	mapping.o myfile.o settings_parser.o syncmapping.o notifications_bucket.o
-	$(LC) $(LNAME)"server" server.c mem_management.o filesystree.o common_utilities.o \
+	$(LC) $(LNAME)"server" server.c mem_management.o filesystree.o  \
 		mapping_structure.o mapping.o myfile.o settings_parser.o syncmapping.o notifications_bucket.o
 	$(LCLEAN) *.o
 ####################################################################################################
@@ -97,8 +94,6 @@ filesystree.o : filesystree.c
 notifications_bucket.o : notifications_bucket.c
 	$(LC) $(LOBJ) notifications_bucket.c
 
-common_utilities.o : common_utilities.c
-	$(LC) $(LOBJ) common_utilities.c
 
 mem_management.o : mem_management.c
 	$(LC) $(LOBJ) mem_management.c
@@ -109,11 +104,11 @@ settings_parser.o : settings_parser.c
 ####################################################################################################
 # platform dependent
 ####################################################################################################
-mapping.o : linux/mapping.c include/mapping.h
+mapping.o : linux/mapping.c
 	$(LC) $(LOBJ) "linux/mapping.c"
 
-myfile.o : linux/myfile.c include/myfile.h
+myfile.o : linux/myfile.c
 	$(LC) $(LOBJ) "linux/myfile.c"
 
-syncmapping.o : linux/syncmapping.c include/syncmapping.h
+syncmapping.o : linux/syncmapping.c
 	$(LC) $(LOBJ) "linux/syncmapping.c"

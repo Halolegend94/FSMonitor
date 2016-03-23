@@ -8,7 +8,7 @@ char *pmmLastValidPointer = NULL; //memory end pointer
 // pmm_pointer_to_offset
 // ===========================================================================
 unsigned long pmm_pointer_to_offset(void *pointer) {
-	return ((char *)pointer) - pmmBasePointer;
+	return (unsigned long)(((char *)pointer) - pmmBasePointer);
 }
 
 // ===========================================================================
@@ -42,7 +42,7 @@ int pmm_initialize_management(char *basepointer, unsigned long byteNumber, void 
    /*mark the firt free block of memory*/
    metadata *startMeta = (metadata *) basepointer;
    startMeta->isFree = 1;
-   startMeta->previous = 0;
+   startMeta->previous = 0L;
    startMeta->size = byteNumber - sizeof(metadata);
    pmmLastValidPointer = pmmBasePointer + byteNumber - 1;
    return 0;
@@ -58,7 +58,7 @@ void *pmm_malloc(unsigned long req_size){
    /*search a free block with enough memory*/
    while(!pBlock->isFree || pBlock->size < req_size){
       pBlock = (metadata *) (((char *)pBlock) + pBlock->size + sizeof(metadata)); //jump to the next block
-      if((char *)pBlock > (pmmLastValidPointer - sizeof(metadata))) return NULL; //reached the end of the memory region
+      if((char *)pBlock > ((char *)pmmLastValidPointer - sizeof(metadata))) return NULL; //reached the end of the memory region
    }
    //we have found a suitable block of memory. Do we need to split it?
    pBlock->isFree = 0;
@@ -78,22 +78,29 @@ void *pmm_malloc(unsigned long req_size){
 // ===========================================================================
 void pmm_free(void *pointer){
   char *upperLimit = pmmLastValidPointer - sizeof(metadata);
-  if(!pointer || ((char *) pointer) > upperLimit){
+  if(!pointer || ((char *) pointer) > upperLimit || ((char *)pointer) < pmmBasePointer){
       fprintf(stderr, "pmm_free called on invalid pointer.\n");
       return;
    }
+
    metadata *block = (metadata *) (((char *) pointer) - sizeof(metadata));
-   metadata *previous = pmm_offset_to_pointer(block->previous);
-   metadata *next =(metadata *) (((char *) pointer) + block->size);
-   metadata *nextToNext =(metadata *) (((char *) next) + sizeof(metadata) + next->size);
-   
-   if(((char *) next) < upperLimit && next->isFree && previous->isFree){
-      previous->size = previous->size  + block->size + next->size + (2 * sizeof(metadata));
+   metadata *previous = (metadata *) pmm_offset_to_pointer(block->previous);
+   metadata *next = (metadata *)(((char *) pointer) + block->size);
+	 metadata *nextToNext = NULL;
+	 if((char *) next < upperLimit)
+   	nextToNext = (metadata *) (((char *) next) + sizeof(metadata) + next->size);
+
+	 if(((char *) next) < upperLimit){
+		 if( next->isFree && previous->isFree){
+			 previous->size = previous->size  + block->size + next->size + (2 * sizeof(metadata));
        if(((char *) nextToNext) < upperLimit) nextToNext->previous = block->previous;
-   }else if(((char *) next) < upperLimit && next->isFree){
+		 }else if(next->isFree){
       block->size += next->size + sizeof(metadata);
       block->isFree = 1;
-      if(((char *) nextToNext) < upperLimit) nextToNext->previous = next->previous;
+			if(nextToNext != NULL)
+				if(((char *) nextToNext) < upperLimit)
+					nextToNext->previous = next->previous;
+			}
    }else if(previous->isFree){
       previous->size += block->size + sizeof(metadata);
        if(((char *) next) < upperLimit) next->previous = block->previous;
@@ -112,7 +119,7 @@ void pmm_print_memory_state(){
       unsigned long start =  pmm_pointer_to_offset(p);
       unsigned long end = start + p->size + sizeof(metadata) - 1;
       printf("\n");
-   	printf("---------- %lu: start block %lu offset. Libero: %lu\n", start, counter, p->isFree);
+   	printf("---------- %lu: start block %lu offset. Libero: %d\n", start, counter, p->isFree);
    	printf("|          |\n");
    	printf("|          |\n");
    	printf("-----------%lu: end block %lu offset\n", end, counter);

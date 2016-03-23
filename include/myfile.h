@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include "common_utilities.h"
 
 //this struct will contain all the info of a file.
 typedef struct _myFile {
@@ -20,6 +19,21 @@ typedef struct _myFileList {
 	int count;
 	myFile *list;
 } myFileList;
+
+// ==========================================================================
+// is_prefix
+// ==========================================================================
+int is_prefix(char *a, char *b);
+
+// ===========================================================================
+//
+// fname_compare
+// Description: this functions tells if two paths are equals.
+// Params:
+// 	-	a, b, two paths
+//
+// ===========================================================================
+int fname_compare(char *a, char *b);
 
 // ===========================================================================
 //

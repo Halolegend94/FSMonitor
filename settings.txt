@@ -1,4 +1,5 @@
 timeout:60
 mapName:mapping
-mapSize:500 #the unit is 1MB
+mapSize:600 #the unit is 1MB
 mapLockName:syncmapping
+

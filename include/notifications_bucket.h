@@ -1,7 +1,6 @@
 #ifndef __NOTIFICATIONSBUCKET__
    #define __NOTIFICATIONSBUCKET__
    #include "mem_management.h"
-   #include "common_utilities.h"
    #include "myfile.h"
    #include "received_notification.h"
    #include "common_definitions.h"

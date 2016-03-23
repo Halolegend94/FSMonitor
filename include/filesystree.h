@@ -1,7 +1,7 @@
 #ifndef __FILESYSTREE__
 	#define __FILESYSTREE__
-	#include "myfile.h"
 	#include <string.h>
+	#include "myfile.h"
 	#include "mem_management.h"
 	/*The following structure represents a node in the FileSystem Tree. The FileSystem Tree
 	is used to mantain the state of the motinored directories by the deamon.*/
@@ -99,7 +99,7 @@
 	//
 	// ===========================================================================
 	int fst_add_children(fstNode *father, myFileList *fList, fstNode **list);
-	
+
 	// ===========================================================================
 	//
 	// fst_print_tree (Debug function)

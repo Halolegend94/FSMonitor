@@ -35,7 +35,7 @@ int fst_get_children(fstNode *father, fstNode ***list, unsigned int *size){
 		return 1;
 	}
 	//get the pointer to the children list
-	long *chdlist = pmm_offset_to_pointer(father->off_children);
+	unsigned long *chdlist = pmm_offset_to_pointer(father->off_children);
 
 	//allocate space
 	*list = (fstNode**) malloc(sizeof(fstNode*) * father->numChildren);
@@ -58,7 +58,7 @@ int fst_get_children(fstNode *father, fstNode ***list, unsigned int *size){
 int fst_contains_child(fstNode *father, char *name, fstNode **child){
 	//get the current node children
 	int numChld = 0;
-	fstNode **list;
+	fstNode **list = NULL;
 	if(fst_get_children(father, &list, &numChld) == -1){
 		fprintf(stderr, "fst_contains_child: error while getting the node's children.\n");
 		return -1;
@@ -66,7 +66,7 @@ int fst_contains_child(fstNode *father, char *name, fstNode **child){
 	if(numChld == 0) return 0;
 	int i;
 	for(i = 0; i < numChld; i++){
-		if(strcicmp(pmm_offset_to_pointer(list[i]->off_name), name) == 0){
+		if(fname_compare(pmm_offset_to_pointer(list[i]->off_name), name) == 0){
 			*child = list[i];
 			return 1;
 		}
@@ -80,7 +80,6 @@ int fst_contains_child(fstNode *father, char *name, fstNode **child){
 // __support_delete_child
 // ===========================================================================
 void __support_delete_child(fstNode *toDelete){
-
 	pmm_free(pmm_offset_to_pointer(toDelete->off_perms));
 	pmm_free(pmm_offset_to_pointer(toDelete->off_name));
 	if(toDelete->numChildren  > 0){
@@ -109,7 +108,7 @@ int fst_delete_child(fstNode *father, fstNode *node){
 		return -1;
 	}
 	//get the pointer to the children list
-	long *chdlist = pmm_offset_to_pointer(father->off_children);
+	unsigned long *chdlist = pmm_offset_to_pointer(father->off_children);
 
 	unsigned long *newList = NULL;
 
@@ -125,7 +124,7 @@ int fst_delete_child(fstNode *father, fstNode *node){
 	//we need to find the entry that have to be deleted
 	int deleted = 0;
 	for(i = 0, j = 0; i < father->numChildren; i++){
-		if(node == pmm_offset_to_pointer(chdlist[i])){
+		if(pmm_pointer_to_offset(node) == chdlist[i]){
 			__support_delete_child(node);
 			deleted = 1;
 		}else{
@@ -205,7 +204,7 @@ int fst_add_child(fstNode *father, myFile *file, fstNode **node){
 		newList[0] = pmm_pointer_to_offset(newNode);
 		father->off_children = pmm_pointer_to_offset(newList);
 	}else{
-		long *list = pmm_offset_to_pointer(father->off_children); //retrieve pointer to the list
+		unsigned long *list = pmm_offset_to_pointer(father->off_children); //retrieve pointer to the list
 		/*we need to realloc (manually) the list*/
 		int i;
 		for(i = 0; i < (father->numChildren - 1); i++){
@@ -223,7 +222,8 @@ int fst_add_child(fstNode *father, myFile *file, fstNode **node){
 // ===========================================================================
 int fst_add_children(fstNode *father, myFileList *fList, fstNode **node){
 	if(fList->count == 0){
-			fprintf(stderr, "fst_add_children: no children to add at node %s\n", pmm_offset_to_pointer(father->off_name));
+			fprintf(stderr, "fst_add_children: no children to add at node %s\n",
+				(char *) pmm_offset_to_pointer(father->off_name));
 			return -1;
 	}
 		/*allocate space for a new set of nodes*/
@@ -284,9 +284,10 @@ int fst_add_children(fstNode *father, myFileList *fList, fstNode **node){
 	if(father->numChildren == fList->count){
 		for(y = 0; y < fList->count; y++)
 			newList[y] = pmm_pointer_to_offset(nodeList + y);
-		father->off_children = pmm_pointer_to_offset(newList);
+			father->off_children = pmm_pointer_to_offset(newList);
+
 	}else{
-		long *list = pmm_offset_to_pointer(father->off_children); //retrieve pointer to the list
+		unsigned long *list = pmm_offset_to_pointer(father->off_children); //retrieve pointer to the list
 		/*we need to realloc (manually) the list*/
 		int i, j;
 		for(i = 0; i < (father->numChildren - fList->count); i++){

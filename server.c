@@ -42,12 +42,18 @@ int main(int argc, char **argv){
 
    fprintf(stdout, "Creating mapping and initialize memory management..\n");
    initialize_mapping(&server);
-   print_mappingstructure_state(server.structure);
+
+   //======================================================================
+
+   printf("myid: %d\n", server.ID);
    //start daemon
    while(getchar() != 'q'){
       getchar();
+      syncmapping_acquire(server.mapLock);
       update(server.structure);
+      printf("J\n");
       print_mappingstructure_state(server.structure);
+      syncmapping_release(server.mapLock);
    }
 
    //terminating cleanup
@@ -65,10 +71,14 @@ void check_params(int argc, char **argv, serverMonitor *server){
       fprintf(stderr, "serverMonitor: you need to pass the initial path to monitor.\n");
       exit(0);
    }
+
    if(is_directory(argv[1]) == 0){
       fprintf(stderr, "severMonitor: the specified path is not a valid directory.\n");
       exit(0);
    }
+   int len = strlen(argv[1]);
+   if(argv[1][len-1] == '\\' || argv[1][len-1] == '/') argv[1][len-1] = '\0';
+
    server->serverPaths = malloc(sizeof(char *));
    if(!(server->serverPaths)){
       fprintf(stderr, "serverMonitor: error while allocating memory.\n");
@@ -143,11 +153,12 @@ void initialize_mapping(serverMonitor *server){
    }
    //CRITICAL SECTION
    /*check if the mapping alredy exists. If not, create one and map the file in memory. Start memory management*/
-   int ret = create_mapping(&(server->mapping), server->mapName, server->mapSize);
+   int ret = create_mapping(&(server->mapping), server->mapName, server->mapSize * sizeof(char));
    if(ret == 0){ //the mapping was not there and has been created
       server->ID = 0;
       char *pointer = get_mapping_pointer(server->mapping);
       //start memory management
+
       if(pmm_initialize_management(pointer, server->mapSize, NULL) == -1){
          fprintf(stderr, "serverMonitor: error while starting memory management.\n");
          exit(0);
@@ -167,7 +178,7 @@ void initialize_mapping(serverMonitor *server){
       }
    }else if(ret == 1){ //the mapping was alredy there
 
-      if(open_mapping(&(server->mapping), server->mapName, server->mapSize) == -1){
+      if(open_mapping(&(server->mapping), server->mapName, server->mapSize * sizeof(char)) == -1){
          fprintf(stderr, "serverMonitor: error while opening the mapping.\n");
          exit(0);
       }
@@ -179,7 +190,7 @@ void initialize_mapping(serverMonitor *server){
          exit(0);
       }
       //initialize the mapping structure
-      int ret1 = initialize_mapping_structure(firstBlock, &server->structure, server->timeout, server->serverPaths[0]);
+      int ret1 = initialize_mapping_structure(firstBlock, &(server->structure), server->timeout, (server->serverPaths)[0]);
       if(ret1 == -1){
          fprintf(stderr, "serverMonitor: error while initializing mapping structure.\n");
          exit(0);

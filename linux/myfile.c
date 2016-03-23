@@ -4,6 +4,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <errno.h>
 
 /*definitions used to allocate space for files info*/
 #define MAXFILES 20
@@ -36,18 +37,36 @@ int get_directory_content(char *dir, myFileList *fileList){
 	DIR *dpointer;
 	dpointer = opendir(dir);
 	if(!dpointer){
-		fprintf(stderr, "Error while opening the directory.\n");
 		free(fileList->list);
+		printf("%s\n", dir);
+		perror("errore");
 		return -2;
 	}
 	dirEntry = readdir(dpointer);
 	/*scan directory*/
 	while(dirEntry != NULL){
-		if(strcmp(dirEntry->d_name, ".") == 0 ||
-		strcmp(dirEntry->d_name, "..") == 0){
+		if(dirEntry->d_name[0] == '.'){
 			dirEntry = readdir(dpointer);
 			continue; //skip special dirs
 		}
+		//we need the fullpath name
+		char *fullPath = concatenate_path(dir, dirEntry->d_name);
+		if(!fullPath){
+			fprintf(stderr, "Error while getting the full path for %s\n", dirEntry->d_name);
+			return -1;
+		}
+		struct stat fileData;
+		mode_t mode;
+		int result = stat(fullPath, &fileData);
+		if(result == -1){
+			/*perror("Error while opening the file");
+			fprintf(stderr, "Error while retrieving file \"%s\" information.\n", fullPath);*/
+			dirEntry = readdir(dpointer);
+			perror("errore");
+			free(fullPath);
+			continue;
+		}
+		mode = fileData.st_mode;
 		if(fileList->count >= currentListCapacity){ //if we exceed the initial space, realloc it
 			currentListCapacity+= MAXFILES_INC;
 			fileList->list = (myFile *) realloc(fileList->list, currentListCapacity * sizeof(myFile));
@@ -65,22 +84,7 @@ int get_directory_content(char *dir, myFileList *fileList){
 		}
 		//set the file name
 		strcpy(fileList->list[fileList->count].name, dirEntry->d_name);
-		//we need the fullpath name
-		char *fullPath = concatenate_path(dir, dirEntry->d_name);
-		if(!fullPath){
-			fprintf(stderr, "Error while getting the full path for %s\n", dirEntry->d_name);
-			return -1;
-		}
-		struct stat fileData;
-		mode_t mode;
-		int result = stat(fullPath, &fileData);
-		if(result == -1){
-			fprintf(stderr, "Error while retrieving file \"%s\" information.\n", dirEntry->d_name);
-			free(fileList->list);
-			free(fileList->list[fileList->count].name);
-			return -1;
-		}
-		mode = fileData.st_mode;
+
 		//set isDir
 		if(S_ISDIR(mode))
 			fileList->list[fileList->count].isDir = 1;
@@ -89,18 +93,20 @@ int get_directory_content(char *dir, myFileList *fileList){
 		//set file size and modification time
 		fileList->list[fileList->count].size = fileData.st_size;
 		fileList->list[fileList->count].lastWriteTimestamp = fileData.st_mtime;
-		fileList->list[fileList->count].perms = __get_perm_string(mode);
-		if(!fileList->list[fileList->count].perms){
+		char *pstr = __get_perm_string(mode);
+		if(!pstr){
 			fprintf(stderr, "Error while retrieving the permissions string for \"%s\".\n", dirEntry->d_name);
-			free(fileList->list);
 			free(fileList->list[fileList->count].name);
+			free(fileList->list);
 			return -1;
 		}
+		fileList->list[fileList->count].perms = pstr;
 		fileList->count++;
 		free(fullPath);
 		//read next entry
 		dirEntry = readdir(dpointer);
 	}
+	closedir(dpointer);
 	return 0;
 }
 
@@ -129,6 +135,24 @@ char *__get_perm_string(mode_t mode){
 	return temp;
 }
 
+// ==========================================================================
+// is_prefix
+// ==========================================================================
+int is_prefix(char *a, char *b){
+   int lenA = strlen(a);
+   int lenB = strlen(b);
+   if(lenA >= lenB && strncmp(a, b, lenB) == 0) return 1;
+   return 0;
+}
+
+// ===========================================================================
+// fname_compare
+// ===========================================================================
+int fname_compare(char *a, char *b){
+	return strcmp(a, b);
+}
+
+
 // ===========================================================================
 // delete_file
 // ===========================================================================
@@ -145,7 +169,7 @@ int is_directory(char *name){
 	int result = stat(name, &dirData);
 	if(result == -1){
 		fprintf(stderr, "Error while retrieving file \"%s\" information.\n", name);
-		return -1;
+		return 0;
 	}
 	mode = dirData.st_mode;
 	if(S_ISDIR(mode))
@@ -175,8 +199,8 @@ char *get_current_directory(void){
 // concatenate_path
 // ===========================================================================
 char *concatenate_path(char *prefix, char *suffix){
-	int l1 = strlen(path);
-	int l2 = strlen(lastpiece);
+	int l1 = strlen(prefix);
+	int l2 = strlen(suffix);
 	int len = l1 + l2 + 2;
 	char *temp = (char *) malloc(sizeof(char) * len);
 	if(!temp){
@@ -186,7 +210,7 @@ char *concatenate_path(char *prefix, char *suffix){
 	int ret = 0;
 	if(l1 == 0){
 		ret = sprintf(temp, "%s", suffix);
-	}else if(prefix[0] == '/'){
+	}else if(prefix[0] == '/' && l1 == 1){
 		ret = sprintf(temp, "%s%s", prefix, suffix);
 	}else{
 		ret = sprintf(temp, "%s/%s", prefix, suffix);
@@ -300,7 +324,7 @@ int tokenize_path(char *path, char ***tokenList, int *tokenListSize){
 int get_file_info(myFileList *fileList, char *filename, myFile **file){
 	int i;
 	for(i = 0; i < fileList->count; i++){
-		if(strcicmp(fileList->list[i].name, filename) == 0){
+		if(fname_compare(fileList->list[i].name, filename) == 0){
 			*file = &(fileList->list[i]);
 			return 1;
 		}

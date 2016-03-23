@@ -8,7 +8,7 @@
 	and how many bytes to free when pmm_free() is called*/
 	typedef struct _metadata{
 	   unsigned long size;
-	   unsigned long isFree;
+	   int isFree;
 	   unsigned long previous;
 	} metadata;
 
