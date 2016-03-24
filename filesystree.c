@@ -79,9 +79,15 @@ int fst_contains_child(fstNode *father, char *name, fstNode **child){
 // ===========================================================================
 // __support_delete_child
 // ===========================================================================
-void __support_delete_child(fstNode *toDelete){
-	pmm_free(pmm_offset_to_pointer(toDelete->off_perms));
-	pmm_free(pmm_offset_to_pointer(toDelete->off_name));
+int __support_delete_child(fstNode *toDelete){
+	if(pmm_free(pmm_offset_to_pointer(toDelete->off_perms)) == -1){
+		fprintf(stderr, "%s\n", "__support_delete_child: pmm_free error on toDelete perms");
+		return -1;
+	}
+	if(pmm_free(pmm_offset_to_pointer(toDelete->off_name)) == -1){
+		fprintf(stderr, "%s\n", "__support_delete_child: pmm_free error on toDelete name");
+		return -1;
+	}
 	if(toDelete->numChildren  > 0){
 		//get the pointer to the children list
 		long *chdlist = pmm_offset_to_pointer(toDelete->off_children);
@@ -93,9 +99,15 @@ void __support_delete_child(fstNode *toDelete){
 				__support_delete_child(node);
 			}
 		}
-		pmm_free(chdlist);
+		if(pmm_free(chdlist) == -1){
+			fprintf(stderr, "%s\n", "__support_delete_child: pmm_free error on toDelete chdlist");
+			return -1;
+		}
 	}
-	pmm_free(toDelete);
+	if(pmm_free(toDelete) == -1){
+		fprintf(stderr, "%s\n", "__support_delete_child: pmm_free error on toDelete");
+		return -1;
+	}
 }
 
 // ===========================================================================
@@ -121,11 +133,12 @@ int fst_delete_child(fstNode *father, fstNode *node){
 	}
 
 	int i, j;
+
 	//we need to find the entry that have to be deleted
 	int deleted = 0;
 	for(i = 0, j = 0; i < father->numChildren; i++){
 		if(pmm_pointer_to_offset(node) == chdlist[i]){
-			__support_delete_child(node);
+			if(__support_delete_child(node) == -1) return -1;
 			deleted = 1;
 		}else{
 			newList[j] = chdlist[i];
@@ -138,7 +151,11 @@ int fst_delete_child(fstNode *father, fstNode *node){
 		return -1;
 	}
 	father->numChildren = father->numChildren - 1;
-	pmm_free(chdlist);
+
+	if(pmm_free(chdlist) == -1){
+		fprintf(stderr, "%s\n", "fst_delete_child: pmm_free error on chdlist");
+		return -1;
+	}
 	if(father->numChildren > 0) //set the new list
 		father->off_children = pmm_pointer_to_offset(newList);
 	return 0;
@@ -152,7 +169,7 @@ int fst_add_child(fstNode *father, myFile *file, fstNode **node){
 	/*allocate space for a new node*/
 	fstNode *newNode = (fstNode *) pmm_malloc(sizeof(fstNode));
 	if(!newNode){
-		fprintf(stderr, "Error while allocating memory with pmm in fst_add_child.\n");
+		fprintf(stderr, "Error while allocating memory with pmm (1) in fst_add_child.\n");
 		return -1;
 	}
 
@@ -160,11 +177,9 @@ int fst_add_child(fstNode *father, myFile *file, fstNode **node){
 	if(node != NULL) *node = newNode;
 
 	int nlen = strlen(file->name);
-
 	char *pName = (char *) pmm_malloc(sizeof(char) * (nlen + 1));
 	if(!pName){
-		fprintf(stderr, "Error while allocating memory with pmm in fst_add_child.\n");
-		pmm_free(newNode);
+		fprintf(stderr, "Error while allocating memory with pmm in fst_add_child (%s).\n", file->name);
 		return -1;
 	}
 
@@ -174,9 +189,7 @@ int fst_add_child(fstNode *father, myFile *file, fstNode **node){
 
 	char *pPerms = (char *) pmm_malloc(sizeof(char) * (plen + 1));
 	if(!pPerms){
-		fprintf(stderr, "Error while allocating memory with pmm in fst_add_child.\n");
-		pmm_free(newNode);
-		pmm_free(pName);
+		fprintf(stderr, "Error while allocating memory with pmm in fst_add_child. (%s)\n", file->perms);
 		return -1;
 	}
 
@@ -195,9 +208,6 @@ int fst_add_child(fstNode *father, myFile *file, fstNode **node){
 	unsigned long *newList = (unsigned long *) pmm_malloc(sizeof(unsigned long) * (father->numChildren));
 	if(!newList){
 		fprintf(stderr, "Error while allocating memory with pmm in fst_add_child.\n");
-		pmm_free(newNode);
-		pmm_free(pName);
-		pmm_free(pPerms);
 		return -1;
 	}
 	if(father->numChildren == 1){
@@ -218,85 +228,66 @@ int fst_add_child(fstNode *father, myFile *file, fstNode **node){
 }
 
 // ===========================================================================
-// fst_add_children
+// fst_set_children
 // ===========================================================================
-int fst_add_children(fstNode *father, myFileList *fList, fstNode **node){
+int fst_set_children(fstNode *father, myFileList *fList, fstNode ***node){
 	if(fList->count == 0){
-			fprintf(stderr, "fst_add_children: no children to add at node %s\n",
+			fprintf(stderr, "fst_set_children: no children to add at node %s\n",
 				(char *) pmm_offset_to_pointer(father->off_name));
 			return -1;
 	}
-		/*allocate space for a new set of nodes*/
-	fstNode *nodeList = (fstNode *) pmm_malloc(sizeof(fstNode) * fList->count);
-
+	/*allocate space for a new set of nodes*/
+	fstNode **nodeList = (fstNode **) malloc(sizeof(fstNode *) * fList->count);
 	if(!nodeList){
-		fprintf(stderr, "Error while allocating memory with pmm in fst_add_children.\n");
+		fprintf(stderr, "Error while allocating memory with pmm in fst_set_children.\n");
 		return -1;
 	}
-	if(node != NULL) *node = nodeList;
+	*node = nodeList;
+
+	father->numChildren = fList->count;
+	unsigned long *offsetList = (unsigned long *) pmm_malloc(sizeof(unsigned long) * (father->numChildren));
+	if(!offsetList){
+		fprintf(stderr, "Error while allocating memory with pmm in fst_set_children.\n");
+		return -1;
+	}
+	father->off_children = pmm_pointer_to_offset(offsetList);
+
 	int y; //counter
 	for(y = 0; y < fList->count; y++){
 
-		myFile *file = &(fList->list[y]);
-		int nlen = strlen(file->name);
+		myFile *file = &(fList->list[y]);                      //file
+		nodeList[y] = (fstNode *) pmm_malloc(sizeof(fstNode)); //new node
+		if(!nodeList[y]){
+			fprintf(stderr, "fst_set_children: error while allocating memory.\n");
+			return -1;
+		}
+	  offsetList[y] = pmm_pointer_to_offset(nodeList[y]);
 
+		/*get the information*/
+		int nlen = strlen(file->name);
 		char *pName = (char *) pmm_malloc(sizeof(char) * (nlen + 1));
 		if(!pName){
-			fprintf(stderr, "Error while allocating memory with pmm in fst_add_child.\n");
-			pmm_free(nodeList);
+			fprintf(stderr, "Error while allocating memory with pmm in fst_set_children.\n");
 			return -1;
 		}
-
 		strcpy(pName, file->name);
-		nodeList[y].off_name = pmm_pointer_to_offset(pName);
-		int plen = strlen(file->perms);
+		nodeList[y]->off_name = pmm_pointer_to_offset(pName);
 
+		int plen = strlen(file->perms);
 		char *pPerms = (char *) pmm_malloc(sizeof(char) * (plen + 1));
 		if(!pPerms){
-			fprintf(stderr, "Error while allocating memory with pmm in fst_add_child.\n");
-			pmm_free(nodeList);
-			pmm_free(pName);
+			fprintf(stderr, "Error while allocating memory with pmm in fst_set_children.\n");
 			return -1;
 		}
-
 		strcpy(pPerms, file->perms);
-		nodeList[y].off_perms = pmm_pointer_to_offset(pPerms);
+		nodeList[y]->off_perms = pmm_pointer_to_offset(pPerms);
 
-		nodeList[y].size = file->size; //file size
-		nodeList[y].isDir = file->isDir;
-		nodeList[y].lastWriteTimestamp = file->lastWriteTimestamp;
-		nodeList[y].isRoot = 0;
-		nodeList[y].isMonitored = 0;
-		nodeList[y].numChildren = 0;
-	}
-	/*we now add this new list to the father node*/
-	father->numChildren += fList->count;
-	unsigned long *newList = (unsigned long *) pmm_malloc(sizeof(unsigned long) * (father->numChildren));
-	if(!newList){
-		fprintf(stderr, "Error while allocating memory with pmm in fst_add_children.\n");
-		for(y = 0; y < fList->count; y++){
-			pmm_free(pmm_offset_to_pointer(nodeList[y].off_name));
-			pmm_free(pmm_offset_to_pointer(nodeList[y].off_perms));
-		}
-		pmm_free(nodeList);
-		return -1;
-	}
-	if(father->numChildren == fList->count){
-		for(y = 0; y < fList->count; y++)
-			newList[y] = pmm_pointer_to_offset(nodeList + y);
-			father->off_children = pmm_pointer_to_offset(newList);
-
-	}else{
-		unsigned long *list = pmm_offset_to_pointer(father->off_children); //retrieve pointer to the list
-		/*we need to realloc (manually) the list*/
-		int i, j;
-		for(i = 0; i < (father->numChildren - fList->count); i++){
-			newList[i] = list[i];
-		}
-		for( j = 0; i < father->numChildren;j++, i++)
-			newList[i] = pmm_pointer_to_offset(nodeList + j);
-		pmm_free(list);
-		father->off_children = pmm_pointer_to_offset(newList);
+		nodeList[y]->size = file->size; //file size
+		nodeList[y]->isDir = file->isDir;
+		nodeList[y]->lastWriteTimestamp = file->lastWriteTimestamp;
+		nodeList[y]->isRoot = 0;
+		nodeList[y]->isMonitored = 0;
+		nodeList[y]->numChildren = 0;
 	}
 	return 0;
 }
@@ -314,8 +305,8 @@ void __fst_print_tree_rec(fstNode *node, int lev){
 	}
 	int i;
 	for(i = 0; i < size; i++){
-		printf("%*s| - Nome: %s, perms: %s, mod: %lld, size: %lld\n", lev, " ",
-			(char *) pmm_offset_to_pointer(list[i]->off_name), (char *)	pmm_offset_to_pointer(list[i]->off_perms),
+		printf("%*s| - Nome: %s, typ: %d, perms: %s, mod: %lld, size: %lld\n", lev, " ",
+			(char *) pmm_offset_to_pointer(list[i]->off_name),list[i]->isDir, (char *)	pmm_offset_to_pointer(list[i]->off_perms),
 			 list[i]->lastWriteTimestamp, list[i]->size);
 		if(list[i]->isDir) __fst_print_tree_rec(list[i], lev + 3); //recursive call
 	}

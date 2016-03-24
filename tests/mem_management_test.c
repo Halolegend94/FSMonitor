@@ -26,10 +26,6 @@ int main(void) {
 	char *tre = pmm_malloc(1);
 		pmm_print_memory_state();
 
-	printf("Delete second allocation\n");
-	pmm_free(uno);
-		pmm_print_memory_state();
-
 	printf("Fourth allocation\n");
 	char *quat = pmm_malloc(4);
 		pmm_print_memory_state();
@@ -38,11 +34,15 @@ int main(void) {
 	char *due = pmm_malloc(2);
 		pmm_print_memory_state();
 
-	printf("Delete Forth allocation 4 byte\n");
-	pmm_free(quat);
+	printf("Delete third allocation 1 byte\n");
+	pmm_free(tre);
 		pmm_print_memory_state();
 
-	printf("Delete Fifth allocation 2 byte\n");
+		printf("Delete second allocation 1 byte\n");
+		pmm_free(uno);
+		pmm_print_memory_state();
+
+	/*printf("Delete Fifth allocation 2 byte\n");
 	pmm_free(due);
 		pmm_print_memory_state();
 
@@ -53,7 +53,7 @@ int main(void) {
 	printf("Delete third allocation 1 byte\n");
 	pmm_free(tre);
 	pmm_print_memory_state();
-
+*/
 
 
 	free(p);

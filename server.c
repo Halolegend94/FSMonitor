@@ -45,13 +45,11 @@ int main(int argc, char **argv){
 
    //======================================================================
 
-   printf("myid: %d\n", server.ID);
+   printf("Pronto\n");
    //start daemon
    while(getchar() != 'q'){
-      getchar();
       syncmapping_acquire(server.mapLock);
       update(server.structure);
-      printf("J\n");
       print_mappingstructure_state(server.structure);
       syncmapping_release(server.mapLock);
    }

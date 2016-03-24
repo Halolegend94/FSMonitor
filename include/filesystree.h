@@ -88,8 +88,8 @@
 
 	// ===========================================================================
 	//
-	// fst_add_children
-	// Description: add a set of fstNode as children to a fstNode
+	// fst_set_children
+	// Description: set a set of fstNode as children to a fstNode
 	// Params:
 	// 	-	father: a pointer to the father fstNode
 	// 	-	fList: a pointer to a struct myFileList with the files list
@@ -98,7 +98,7 @@
 	// Returns -1 in case of error, 0 otherwise
 	//
 	// ===========================================================================
-	int fst_add_children(fstNode *father, myFileList *fList, fstNode **list);
+	int fst_set_children(fstNode *father, myFileList *fList, fstNode ***list);
 
 	// ===========================================================================
 	//
