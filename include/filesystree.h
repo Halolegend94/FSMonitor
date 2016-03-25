@@ -98,7 +98,7 @@
 	// Returns -1 in case of error, 0 otherwise
 	//
 	// ===========================================================================
-	int fst_set_children(fstNode *father, myFileList *fList, fstNode ***list);
+	int fst_add_children(fstNode *father, myFileList *fList, fstNode ***list, int *count);
 
 	// ===========================================================================
 	//

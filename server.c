@@ -8,18 +8,17 @@
 #include "include/myfile.h"
 
 typedef struct _serverMonitor{
-   int ID;
-   int timeout;                  //frequence by which the monitor must check for updates
-   char **serverPaths;           //paths monitored by the server
-   int serverPathsCount;         //number of server paths
-   char *mapName;                //the name of the mapping
-   char *mapLockName;            //the name of the file that will be used as lock
-   pSyncMapping mapLock;         //the map Lock structure
-   pMapping mapping;             //the mapping structure
-   long long mapSize;            //the size of the mapping
-   mappingStructure *structure;  //the logic structure of the mapping
-   //TODO: Clients list
-
+    int ID;
+    int timeout;                  //frequence by which the monitor must check for updates
+    char **serverPaths;           //paths monitored by the server
+    int serverPathsCount;         //number of server paths
+    char *mapName;                //the name of the mapping
+    char *mapLockName;            //the name of the file that will be used as lock
+    pSyncMapping mapLock;         //the map Lock structure
+    pMapping mapping;             //the mapping structure
+    long long mapSize;            //the size of the mapping
+    mappingStructure *structure;  //the logic structure of the mapping
+    //TODO: Clients list
 } serverMonitor;
 
 /*function prototypes*/
@@ -38,26 +37,46 @@ int main(int argc, char **argv){
    fprintf(stdout, "Loading settings..\n");
    //load settings
    load_settings(&server);
-   //TODO: avvia server tcp
 
-   fprintf(stdout, "Creating mapping and initialize memory management..\n");
+   fprintf(stdout, "Creating mapping, initialize memory management, performing the first scan..\n");
    initialize_mapping(&server);
 
-   //======================================================================
+   //TODO: avvia server tcp
 
-   printf("Pronto\n");
+   //TODO: avvia demon se sei il primo server
+   //**********************    MAIN BODY   ********************************************
+
+   printf("Server %u is active!\n", server.ID);
    //start daemon
-   while(getchar() != 'q'){
+   /*while(true){
+      th_sleep(server.timeout)
       syncmapping_acquire(server.mapLock);
       update(server.structure);
       print_mappingstructure_state(server.structure);
       syncmapping_release(server.mapLock);
+   }*/
+   //DEBUG ELIMINATE PATH
+   print_mappingstructure_state(server.structure);
+   getchar();
+   syncmapping_acquire(server.mapLock);
+    update(server.structure);
+    print_mappingstructure_state(server.structure);
+    getchar();
+    getchar();
+    update(server.structure);
+    print_mappingstructure_state(server.structure);
+    getchar();
+    getchar();
+   if(unregister_server(server.structure, server.ID, server.serverPaths, server.serverPathsCount) == -1){
+      fprintf(stderr, "serverMonitor: error while removing server data from the mapping.\n");
    }
-
+   print_mappingstructure_state(server.structure);
+   syncmapping_release(server.mapLock);
    //terminating cleanup
    delete_mapping(server.mapping);
+   exit(0);
    if(delete_file(server.mapName) == -1)
-      printf("Error deleting the file associated with the mapping!");
+      printf("Error deleting the file associated with the mapping!\n");
    //TODO: nsacco de roba
 }
 
@@ -69,7 +88,10 @@ void check_params(int argc, char **argv, serverMonitor *server){
       fprintf(stderr, "serverMonitor: you need to pass the initial path to monitor.\n");
       exit(0);
    }
-
+   if(is_absolute_path(argv[1]) == 0){
+      fprintf(stderr, "serverMonitor: the path must be expressed as absolute path.\n");
+      exit(0);
+   }
    if(is_directory(argv[1]) == 0){
       fprintf(stderr, "severMonitor: the specified path is not a valid directory.\n");
       exit(0);
@@ -88,6 +110,7 @@ void check_params(int argc, char **argv, serverMonitor *server){
       exit(0);
    }
    strcpy(server->serverPaths[0], argv[1]);
+   server->serverPathsCount = 1;
 }
 
 // ===========================================================================
@@ -131,6 +154,7 @@ void load_settings(serverMonitor *server){
       fprintf(stderr, "serverMonitor: error while calling get_setting_by_name\n");
       exit(0);
    }
+   free(t2);
    free_settings_structure(&loadedSettings);
 }
 
@@ -150,7 +174,8 @@ void initialize_mapping(serverMonitor *server){
       exit(0);
    }
    //CRITICAL SECTION
-   /*check if the mapping alredy exists. If not, create one and map the file in memory. Start memory management*/
+   /*check if the mapping alredy exists. If not, create one and map the file in
+   memory. Start memory management*/
    int ret = create_mapping(&(server->mapping), server->mapName, server->mapSize * sizeof(char));
    if(ret == 0){ //the mapping was not there and has been created
       server->ID = 0;
@@ -162,7 +187,8 @@ void initialize_mapping(serverMonitor *server){
          exit(0);
       }
       //initialize the mapping structure
-      int ret1 = initialize_mapping_structure(NULL, &(server->structure), server->timeout, (server->serverPaths)[0]);
+      int ret1 = initialize_mapping_structure(NULL, &(server->structure),
+                    server->timeout, (server->serverPaths)[0]);
       if(ret1 == -1){
          fprintf(stderr, "serverMonitor: error while initializing mapping structure.\n");
          exit(0);
@@ -188,7 +214,8 @@ void initialize_mapping(serverMonitor *server){
          exit(0);
       }
       //initialize the mapping structure
-      int ret1 = initialize_mapping_structure(firstBlock, &(server->structure), server->timeout, (server->serverPaths)[0]);
+      int ret1 = initialize_mapping_structure(firstBlock, &(server->structure),
+                server->timeout, (server->serverPaths)[0]);
       if(ret1 == -1){
          fprintf(stderr, "serverMonitor: error while initializing mapping structure.\n");
          exit(0);
@@ -198,7 +225,7 @@ void initialize_mapping(serverMonitor *server){
          exit(0);
       }
 
-      server->ID = ret;
+      server->ID = ret1;
    }else if(ret == -1){
       fprintf(stderr, "serverMonitor: error while creating the mapping.\n");
       exit(0);

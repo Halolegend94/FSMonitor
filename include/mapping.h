@@ -14,7 +14,7 @@
 	// Description: this function must be called by the first process in order
 	// to create a file and a mapping in the memory associated to that file.
 	// Params:
-	// 	- *map: pointer to a mapping structure
+	// - *map: pointer to a mapping structure
 	//	- *name: name of the file (also, on windows, of the mapping)
 	//	- size: size of the mapping
 	// Returns -1 in case of error, 0 if the mapping has been created, 1 if the mapping was already there

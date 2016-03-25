@@ -3,9 +3,9 @@
 	#include <stdio.h>
 	#include <stdlib.h>
 
-	/*When allocating memory, we use extra bytes to store the size, the availability and the previous block offset
-	at the beginning of the block. In this way we will know what are the free blocks
-	and how many bytes to free when pmm_free() is called*/
+	/*When allocating memory, we use extra bytes to store the size, the availability
+	and the previous block offset at the beginning of the block. In this way we will
+	know what are the free blocks and how many bytes to free when pmm_free() is called*/
 	typedef struct _metadata{
 	   unsigned long size;
 	   int isFree;
@@ -17,11 +17,11 @@
 // ===========================================================================
 //
 // pmm_initialize_management
-// Descripton: when called with NULL as returnPointer, this function initializes the memory management
-// by creating the first free block at the very beginning of the memory area. This represents
-// the whole free memory available. If a not NULL returnPointer is passed, then it is set to the the address of
-// the first byte of the first block of memory.
-// If an error has occurred, -1 is returned, 0 otherwise.
+// Descripton: when called with NULL as returnPointer, this function initializes the
+// memory management by creating the first free block at the very beginning of the
+// memory area. This represents the whole free memory available. If a not NULL
+// returnPointer is passed, then it is set to the the address of the first byte of
+// the first block of memory. If an error has occurred, -1 is returned, 0 otherwise.
 //
 // ===========================================================================
 int pmm_initialize_management(char *basepointer, unsigned long byteNumber, void **returnPointer);
@@ -29,7 +29,8 @@ int pmm_initialize_management(char *basepointer, unsigned long byteNumber, void 
 // ===========================================================================
 //
 // pmm_pointer_to_offset
-// Description: converts the pointer to an offset (in byte size) from the starting address of the memory area
+// Description: converts the pointer to an offset (in byte size) from the starting
+// address of the memory area
 // Params:
 //	- void *pointer: pointer to convert
 //

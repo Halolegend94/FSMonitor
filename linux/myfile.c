@@ -38,8 +38,6 @@ int get_directory_content(char *dir, myFileList *fileList){
 	dpointer = opendir(dir);
 	if(!dpointer){
 		free(fileList->list);
-		printf("%s\n", dir);
-		perror("errore");
 		return -2;
 	}
 	dirEntry = readdir(dpointer);

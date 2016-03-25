@@ -20,7 +20,7 @@
    } notification;
 
    typedef struct _notificationsBucket{
-      unsigned int serverID;
+      int serverID;
       unsigned long off_path;
       unsigned long off_next; //offset to the next bucket
       unsigned long off_list; //offset to the notifications linked list
@@ -39,7 +39,7 @@
    // Returns 0 in case of success, -1 otherwise
    //
    // ===========================================================================
-   int nb_create(notificationsBucket **firstElement, unsigned int serverID, char *pathName);
+   int nb_create(notificationsBucket **firstElement, int serverID, char *pathName);
 
    // ===========================================================================
    //
@@ -53,7 +53,7 @@
    // Returns 0 in case of success, -1 otherwise
    //
    // ===========================================================================
-   int nb_add_bucket(notificationsBucket *start, unsigned int serverID, char *pathName);
+   int nb_add_bucket(notificationsBucket *start, int serverID, char *pathName);
 
    // ===========================================================================
    //
@@ -68,7 +68,7 @@
    // Returns 0 in case of success, -1 otherwise.
    //
    // ===========================================================================
-   int nb_remove_bucket(notificationsBucket **start, unsigned int serverID, char *pathName);
+   int nb_remove_bucket(notificationsBucket *start, int serverID, char *pathName);
 
    // ===========================================================================
    //
@@ -102,7 +102,7 @@
    // Returns 0 in case of success, -1 otherwise
    //
    // ===========================================================================
-   int nb_read_notifications(notificationsBucket *start, receivedNotification **list, int *count, unsigned int serverID);
+   int nb_read_notifications(notificationsBucket *start, receivedNotification **list, int *count, int serverID);
 
    // ===========================================================================
    //
@@ -115,7 +115,7 @@
    // Returns 1 if true, 0 if false
    //
    // ===========================================================================
-   int nb_exists_bucket(notificationsBucket *start, unsigned int serverID, char *path);
+   int nb_exists_bucket(notificationsBucket *start, int serverID, char *path);
 
    // ===========================================================================
    //

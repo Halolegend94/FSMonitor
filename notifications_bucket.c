@@ -7,9 +7,19 @@
 // ===========================================================================
 // nb_create
 // ===========================================================================
-int nb_create(notificationsBucket **firstElement, unsigned int serverID, char *pathName){
-   *firstElement = pmm_malloc(sizeof(notificationsBucket));
-   if(!(*firstElement)){
+int nb_create(notificationsBucket **rootElement, int serverID, char *pathName){
+   *rootElement = pmm_malloc(sizeof(notificationsBucket));
+   if(!(*rootElement)){
+      fprintf(stderr, "nb_create: error while allocating memory.\n");
+      return -1;
+   }
+   (*rootElement)->serverID = -1; //it's a mark
+   (*rootElement)->off_path = 0;
+   (*rootElement)->off_list = 0;
+
+   /*create the first server bucket*/
+   notificationsBucket *firstElement = pmm_malloc(sizeof(notificationsBucket));
+   if(!firstElement){
       fprintf(stderr, "nb_create: error while allocating memory.\n");
       return -1;
    }
@@ -25,18 +35,20 @@ int nb_create(notificationsBucket **firstElement, unsigned int serverID, char *p
    }
    strcpy(mapName, Pname);
    free(Pname);
-   (*firstElement)->serverID = serverID;
-   (*firstElement)->off_path = pmm_pointer_to_offset(mapName);
-   (*firstElement)->off_next = 0;
-   (*firstElement)->off_list = 0;
-   (*firstElement)->off_last_notification = 0;
+   firstElement->serverID = serverID;
+   firstElement->off_path = pmm_pointer_to_offset(mapName);
+   firstElement->off_next = 0;
+   firstElement->off_list = 0;
+   firstElement->off_last_notification = 0;
+
+   (*rootElement)->off_next = pmm_pointer_to_offset(firstElement);
    return 0;
 }
 
 // ===========================================================================
 // nb_add_bucket
 // ===========================================================================
-int nb_add_bucket(notificationsBucket *start, unsigned int serverID, char *pathName){
+int nb_add_bucket(notificationsBucket *start, int serverID, char *pathName){
    notificationsBucket *lastBucket = start;
    //go to the last bucket
    while(lastBucket->off_next != 0){
@@ -71,28 +83,21 @@ int nb_add_bucket(notificationsBucket *start, unsigned int serverID, char *pathN
 
 // ===========================================================================
 // nb_remove_bucket
-// NOTE: the function modifies the start pointer, so it is necessary to update the data structure
-// after the function call, setting the right offset.
 // ===========================================================================
-int nb_remove_bucket(notificationsBucket **start, unsigned int serverID, char *pathName){
-   notificationsBucket *previous = NULL;
-   notificationsBucket *currentBucket = *start;
+int nb_remove_bucket(notificationsBucket *start, int serverID, char *pathName){
+   notificationsBucket *previous = start;
+   notificationsBucket *currentBucket = start;
    char *mPath =  concatenate_path(pathName, "");
    if(!mPath){
       fprintf(stderr, "Error while concatenating strings.\n");
       return -1;
    }
    do{
-      if(currentBucket->serverID == serverID && strcmp(pmm_offset_to_pointer(currentBucket->off_path), mPath) == 0){
+      if(currentBucket->serverID == serverID && //the first bucket can never match this condition
+          fname_compare(pmm_offset_to_pointer(currentBucket->off_path), mPath) == 0){
+
          //bucket found. We have to delete it. First we update the linked list pointers
-         if(previous != NULL){
-            previous->off_next = currentBucket->off_next;
-         }else if(currentBucket->off_next == 0){
-            //the bucket to be deleted is the last one. We set start to point to NULL
-            *start = NULL;
-         }else{
-            *start = pmm_offset_to_pointer(currentBucket->off_next);
-         }
+         previous->off_next = currentBucket->off_next;
          //delete the bucket and related notifications
          if(currentBucket->off_list != 0){
             //there are notifications, delete them
@@ -129,20 +134,28 @@ int nb_remove_bucket(notificationsBucket **start, unsigned int serverID, char *p
 // ===========================================================================
 // nb_push_notification
 // ===========================================================================
-int nb_push_notification(notificationsBucket *start, char *perms, char *path, long long size,
-                           long long mod, int isDir, notificationType type){
-   notificationsBucket *current = start;
+int nb_push_notification(notificationsBucket *start, char *perms, char *path,
+    long long size, long long mod, int isDir, notificationType type){
 
-   /*the following code is used to correctly verify if the path file is in the subtree of the current bucket*/
+   notificationsBucket *current = NULL;
+   /*the following code is used to correctly verify if the path file is in the
+    subtree of the current bucket*/
+    if(start->off_next == 0)
+        return 0; //no one is listening
+    else
+        current = pmm_offset_to_pointer(start->off_next);
 
-   char *tempName = isDir ? concatenate_path(path, "") : path;
+   char *tempName = concatenate_path(path, "");
    if(!tempName){
       fprintf(stderr, "Error while concatenating strings.\n");
       return -1;
    }
    do{
+
       char *monitoredPath = pmm_offset_to_pointer(current->off_path);
-      if(is_prefix(tempName, monitoredPath) == 1){ //we work with absolute paths
+      int completelyDeleted =  is_prefix(monitoredPath, tempName) == 1;
+
+      if(is_prefix(tempName, monitoredPath) == 1 || completelyDeleted){
          //the server need to receive this notification
          notification *newNotification = pmm_malloc(sizeof(notification));
          unsigned long newOffset = pmm_pointer_to_offset(newNotification);
@@ -164,14 +177,15 @@ int nb_push_notification(notificationsBucket *start, char *perms, char *path, lo
          current->off_last_notification = newOffset;
 
          //now we set the structure values
-         int pathLen = strlen(path);
+         int pathLen = completelyDeleted ? strlen(monitoredPath) : strlen(tempName);
          int permsLen = strlen(perms);
          char *tPath = pmm_malloc(sizeof(char) * (pathLen + 1));
          if(!tPath){
             fprintf(stderr, "nb_push_notification: error while allocating memory.\n");
             return -1;
          }
-         strcpy(tPath, path);
+         strcpy(tPath, completelyDeleted ? monitoredPath : tempName);
+         tPath[pathLen - 1] = '\0';
          newNotification->off_path = pmm_pointer_to_offset(tPath);
 
          char *tPerms = pmm_malloc(sizeof(char) * (permsLen + 1));
@@ -194,7 +208,7 @@ int nb_push_notification(notificationsBucket *start, char *perms, char *path, lo
       }
 
    }while(1);
-   if(isDir) free(tempName);
+   free(tempName);
    return 0;
 }
 
@@ -203,7 +217,8 @@ int nb_push_notification(notificationsBucket *start, char *perms, char *path, lo
 // NOTE: list will contain a pointer to a memory area in the process memory
 // and not in the mapping.
 // ===========================================================================
-int nb_read_notifications(notificationsBucket *start, receivedNotification **list, int *count, unsigned int serverID){
+int nb_read_notifications(notificationsBucket *start, receivedNotification **list,
+    int *count,  int serverID){
       *count = 0;
       *list = NULL;
       int currentCapacity = MIN_NUMBER;
@@ -275,7 +290,7 @@ int nb_read_notifications(notificationsBucket *start, receivedNotification **lis
 // ===========================================================================
 // nb_exists_bucket
 // ===========================================================================
- int nb_exists_bucket(notificationsBucket *start, unsigned int serverID, char *path){
+ int nb_exists_bucket(notificationsBucket *start, int serverID, char *path){
  	notificationsBucket *current = start;
  	do{
          if(current->serverID == serverID && strcmp(pmm_offset_to_pointer(current->off_path), path) == 0){
@@ -291,12 +306,12 @@ int nb_read_notifications(notificationsBucket *start, receivedNotification **lis
 // nb_print_notification_buckets [DEBUG]
 // ===========================================================================
 void nb_print_notification_buckets(notificationsBucket *start){
-   if(!start){
-      fprintf(stderr, "nb_print_notification_buckets: param is null.\n");
+   if(start->off_next == 0){
+      fprintf(stderr, "nb_print_notification_buckets: there is no bucket to show.\n");
       return;
    }
    printf("---------------------------------------- buckets list\n");
-   notificationsBucket *current = start;
+   notificationsBucket *current = pmm_offset_to_pointer(start->off_next);
    do{
       printf("===> server ID: %u, path: %s\n", current->serverID, (char *) pmm_offset_to_pointer(current->off_path));
       if(current->off_list != 0){
