@@ -83,6 +83,21 @@
 
 	// ===========================================================================
 	//
+	// get_notifications
+	// Description: get the notification for a server from its buckets
+	// Params:
+	// 	-	str: the pointer to the mapping structure
+	//		-	sid: the server id
+	//		-	list: a pointer to a location where the pointer to a list of receivedNotification will
+	// 	 	be stored.
+	// 	-	count: a pointer to a location where the number of notifications retrieved will be stored
+	// Returns: 0 in case of success, -1 otherwise
+	//
+	// ===========================================================================
+	int get_notifications(mappingStructure *str, int sid, receivedNotification **list, int *count);
+
+	// ===========================================================================
+	//
 	// print_mappingstructure_state
 	// print a representation of the mapping data structure [DEBUG PURPOSES]
 	//

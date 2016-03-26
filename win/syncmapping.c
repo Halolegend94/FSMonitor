@@ -3,40 +3,23 @@
 
 /*this structure is used as a reference to the file used as mutex.*/
 struct syncMapping {
-    HANDLE fileHandle;
-	 char *fileName;
-	 OVERLAPPED sOverlapped;
+    HANDLE mutex;
 };
 
 // ===========================================================================
 // syncmapping_createlock
 // ===========================================================================
 int syncmapping_createlock(struct syncMapping **lock, char *lockname){
-	OVERLAPPED sOverlapped;
-	sOverlapped.Offset = 0;
-	sOverlapped.OffsetHigh = 0;
-	sOverlapped.hEvent = 0;
-	HANDLE fHandle = CreateFile(lockname, GENERIC_READ | GENERIC_WRITE,
-		FILE_SHARE_WRITE | FILE_SHARE_READ, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (fHandle == INVALID_HANDLE_VALUE) {
-		/*the lock file is already there, just get the handle*/
-		fHandle = CreateFile(lockname, GENERIC_READ | GENERIC_WRITE,
-			FILE_SHARE_WRITE | FILE_SHARE_READ, NULL,OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-		if (fHandle == INVALID_HANDLE_VALUE) {
-			fprintf(stderr, "An error occurred while opening the syncmapping lock.\n");
-			return -1;
-		}
-	}
-	//allocate a sycnMapping structure
-	*lock = (struct syncMapping *) malloc(sizeof(struct syncMapping));
-	if(!(*lock)){
-		fprintf(stderr, "Error while allocating memory.\n");
-		CloseHandle(fHandle);
-		return -1;
-	}
-	(*lock)->fileName = lockname;
-	(*lock)->sOverlapped = sOverlapped;
-	(*lock)->fileHandle = fHandle;
+   *lock = malloc(sizeof(struct syncMapping));
+   if(!(*lock)){
+      fprintf(stderr, "syncmapping_createlock: error while allocating memory.\n");
+      return -1;
+   }
+   (*lock)->mutex = CreateMutex(NULL, FALSE, lockname);
+   if((*lock)->mutex == NULL){
+      fprintf(stderr, "syncmapping_createlock: error while creating the mutex.\n");
+      return -1;
+   }
 	return 0;
 }
 
@@ -44,11 +27,11 @@ int syncmapping_createlock(struct syncMapping **lock, char *lockname){
 // syncmapping_acquire
 // ===========================================================================
 int syncmapping_acquire(struct syncMapping *lock) {
-	BOOL locked = LockFileEx(lock->fileHandle, LOCKFILE_EXCLUSIVE_LOCK, 0, 1, 0, &lock->sOverlapped);
-	if (locked == FALSE) {
-		fprintf(stderr, "Error while acquiring the syncmapping lock.\n");
-		return -1;
-	}
+   DWORD ret = WaitForSingleObject(lock->mutex, INFINITE);
+   if(ret == WAIT_FAILED){
+      fprintf(stderr, "syncmapping_acquire: error while acquiring the mutex.\n");
+      return -1;
+   }
 	return 0;
 }
 
@@ -56,11 +39,23 @@ int syncmapping_acquire(struct syncMapping *lock) {
 // syncmapping_release
 // ===========================================================================
 int syncmapping_release(struct syncMapping *lock) {
-	BOOL unlocked = UnlockFileEx(lock->fileHandle, 0, 1, 0, &lock->sOverlapped);
-	if (unlocked == FALSE) {
-		fprintf(stderr, "Error while releasing the syncmapping lock.\n");
+	BOOL unlocked = ReleaseMutex(lock->mutex);
+   if(unlocked == 0){
+      fprintf(stderr, "syncmapping_release: error while releasing the mutex.\n");
+      return -1;
+   }
+	return 0;
+}
+
+// ===========================================================================
+// syncmapping_closelock
+// ===========================================================================
+int syncmapping_closelock(struct syncMapping *lock){
+	if(!CloseHandle(lock->mutex)){
+		fprintf(stderr, "Error while closing the lock file handle.\n");
 		return -1;
 	}
+	free(lock);
 	return 0;
 }
 
@@ -68,15 +63,5 @@ int syncmapping_release(struct syncMapping *lock) {
 // syncmapping_deletelock
 // ===========================================================================
 int syncmapping_deletelock(struct syncMapping *lock){
-	if(!CloseHandle(lock->fileHandle)){
-		fprintf(stderr, "Error while closing the lock file handle.\n");
-		return -1;
-	}
-	if(!DeleteFile(lock->fileName)){
-		fprintf(stderr, "Error while deleting the lock file.\n");
-		return -1;
-	}
-	free(lock->fileName);
-	free(lock);
-	return 0;
+	return syncmapping_closelock(lock);
 }

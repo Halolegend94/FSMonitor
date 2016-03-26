@@ -64,7 +64,7 @@ void *pmm_malloc(unsigned long req_size);
 //	- void *pointer: pointer to the block of memory that has to be freed.
 //
 // ===========================================================================
-int pmm_free(void *pointer);
+void pmm_free(void *pointer);
 
 // ===========================================================================
 //

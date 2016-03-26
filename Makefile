@@ -28,10 +28,12 @@ LOBJ=-c
 #
 ####################################################################################################
 
-server-win : server.c win\utilities.c mem_management.obj filesystree.obj mapping_structure.obj \
-	mapping.obj myfile.obj settings_parser.obj syncmapping.obj notifications_bucket.obj utilities.obj
-	$(WC) $(WNAME)"server" server.c mem_management.obj filesystree.obj  \
-		mapping_structure.obj mapping.obj myfile.obj settings_parser.obj syncmapping.obj notifications_bucket.obj utilities.obj
+server-win : server_monitor.c win\utilities.c mem_management.obj filesystree.obj mapping_structure.obj \
+	mapping.obj myfile.obj settings_parser.obj syncmapping.obj notifications_bucket.obj utilities.obj \
+	daemon.obj thread.obj
+	$(WC) $(WNAME)"server" server_monitor.c mem_management.obj filesystree.obj daemon.obj thread.obj  \
+		mapping_structure.obj mapping.obj myfile.obj settings_parser.obj syncmapping.obj \
+		notifications_bucket.obj utilities.obj
 #	 $(WCLEAN) *.obj
 
 ####################################################################################################
@@ -43,6 +45,9 @@ mapping_structure.obj : mapping_structure.c
 
 filesystree.obj : filesystree.c
 	$(WC) $(WOBJ) filesystree.c
+
+daemon.obj : daemon.c
+	$(WC) $(WOBJ) daemon.c
 
 notifications_bucket.obj : notifications_bucket.c
 	$(WC) $(WOBJ) notifications_bucket.c
@@ -69,6 +74,8 @@ utilities.obj :  win\utilities.c
 syncmapping.obj : "win\syncmapping.c"
 	$(WC) $(WOBJ) win\syncmapping.c
 
+thread.obj : "win\thread.c"
+	$(WC) $(WOBJ) win\thread.c
 
 ####################################################################################################
 #
@@ -76,9 +83,9 @@ syncmapping.obj : "win\syncmapping.c"
 #
 ####################################################################################################
 
-server-linux : server.c mem_management.o filesystree.o mapping_structure.o \
-	mapping.o myfile.o settings_parser.o syncmapping.o notifications_bucket.o
-	$(LC) $(LNAME)"server" server.c mem_management.o filesystree.o  \
+server-linux : server_monitor.c mem_management.o filesystree.o mapping_structure.o \
+	mapping.o myfile.o settings_parser.o syncmapping.o notifications_bucket.o thread.o daemon.o
+	$(LC) $(LNAME)"server" server_monitor.c mem_management.o filesystree.o thread.o daemon.o \
 		mapping_structure.o mapping.o myfile.o settings_parser.o syncmapping.o notifications_bucket.o
 	$(LCLEAN) *.o
 ####################################################################################################
@@ -91,9 +98,11 @@ mapping_structure.o : mapping_structure.c
 filesystree.o : filesystree.c
 	$(LC) $(LOBJ) filesystree.c
 
+daemon.0 : daemon.c
+	$(LC) $(LOBJ) daemon.c
+
 notifications_bucket.o : notifications_bucket.c
 	$(LC) $(LOBJ) notifications_bucket.c
-
 
 mem_management.o : mem_management.c
 	$(LC) $(LOBJ) mem_management.c
@@ -109,6 +118,9 @@ mapping.o : linux/mapping.c
 
 myfile.o : linux/myfile.c
 	$(LC) $(LOBJ) "linux/myfile.c"
+
+thread.o : linux/thread.c
+	$(LC) $(LOBJ) "linux/thread.c"
 
 syncmapping.o : linux/syncmapping.c
 	$(LC) $(LOBJ) "linux/syncmapping.c"

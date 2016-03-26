@@ -1,33 +1,57 @@
-/*questo file contiene un insieme di funzioni per gestire
-thread windows.*/
+#include "../include/thread.h"
 #include <windows.h>
 
-typedef struct _thread {
-	HANDLE mythread;
-}thread;
+struct thread {
+	HANDLE handler;
+};
 
-typedef struct _t_args_wrapper {
-	int(*pFunction) (void *);
+//wrapper structure for the arguments
+typedef struct _functionArgsWrapper {
+	void *(*pFunction) (void *);
 	void *arg;
-} threadFunction;
+} functionArgsWrapper;
 
-/*funzione wrapper*/
+
+// ===========================================================================
+// __wrapperTFunction
+// NOTE: used as wrapper because CreateThread wants a function that returns DWORD
+// ===========================================================================
 DWORD WINAPI __wrapperTFunction(LPVOID pointer) {
-	threadFunction *params = (threadFunction *)pointer;
-	int (*myfunction)(void*) = *(params->pFunction);
-	myfunction(params->arg);
+	functionArgsWrapper *params = (functionArgsWrapper *) pointer;
+	void *(*myFunction)(void *) = params->pFunction;
+	myFunction(params->arg);
 	free(pointer);
+	return 0;
 }
 
-thread create_thread(int(*pfunction)(void *), void *arg) {
-	thread temp;
-	threadFunction *func = (threadFunction*) malloc(sizeof(threadFunction));
+// ===========================================================================
+// create_thread
+// ===========================================================================
+int create_thread(void *(*pFunction)(void *), void *arg, struct thread **thr) {
+	*thr = malloc(sizeof(struct thread));
+	if(!(*thr)){
+		fprintf(stderr, "create_thread: error while allocating memory.\n");
+		return -1;
+	}
+	functionArgsWrapper *func = (functionArgsWrapper *) malloc(sizeof(functionArgsWrapper));
 	if (!func) {
-		printf("Errore nell'allocare memoria!\n");
-		exit(1);
+		fprintf(stderr, "create_thread: error while allocating memory.\n");
+		return -1;
 	}
 	func->arg = arg;
-	func->pFunction = pfunction;
-	temp.mythread = CreateThread(NULL, 0, __wrapperTFunction, func, 0, NULL);
-	return temp;
+	func->pFunction = pFunction;
+	(*thr)->handler = CreateThread(NULL, 0, __wrapperTFunction, func, 0, NULL);
+	if((*thr)->handler == NULL){
+		fprintf(stderr, "create_thread: error while creating the thread.\n");
+		return -1;
+	}
+	return 0;
+}
+
+// ===========================================================================
+// thread_sleep
+// ===========================================================================
+int thread_sleep(int seconds){
+	Sleep(seconds * 1000);
+	return 0;
 }

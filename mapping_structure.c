@@ -619,6 +619,17 @@ int __scan(fstNode *currentNode, char *path, mappingStructure *str, int monitore
 }
 
 // ===========================================================================
+// get_notifications
+// ===========================================================================
+int get_notifications(mappingStructure *str, int sid, receivedNotification **list, int *count){
+	 if(nb_read_notifications(pmm_offset_to_pointer(str->off_notifications), list, count, sid) == -1){
+		 fprintf(stderr, "get_notifications: error while reading the notifications list.\n");
+		 return -1;
+	 }
+	 return 0;
+}
+
+// ===========================================================================
 // print_mappingstructure_state
 // ===========================================================================
 void print_mappingstructure_state(mappingStructure *str){

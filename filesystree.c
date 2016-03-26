@@ -79,7 +79,7 @@ int fst_contains_child(fstNode *father, char *name, fstNode **child){
 // ===========================================================================
 // __support_delete_child
 // ===========================================================================
-int __support_delete_child(fstNode *toDelete){
+void __support_delete_child(fstNode *toDelete){
 	pmm_free(pmm_offset_to_pointer(toDelete->off_perms));
 	pmm_free(pmm_offset_to_pointer(toDelete->off_name));
 	if(toDelete->numChildren  > 0){
@@ -126,7 +126,7 @@ int fst_delete_child(fstNode *father, fstNode *node){
 	int deleted = 0;
 	for(i = 0, j = 0; i < father->numChildren; i++){
 		if(pmm_pointer_to_offset(node) == chdlist[i]){
-			if(__support_delete_child(node) == -1) return -1;
+			__support_delete_child(node);
 			deleted = 1;
 		}else{
 			newList[j] = chdlist[i];

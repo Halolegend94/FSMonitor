@@ -1,30 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include "include/settings_parser.h"
-#include "include/mapping_structure.h"
-#include "include/mem_management.h"
-#include "include/mapping.h"
-#include "include/syncmapping.h"
-#include "include/myfile.h"
-
-typedef struct _serverMonitor{
-    int ID;
-    int timeout;                  //frequence by which the monitor must check for updates
-    char **serverPaths;           //paths monitored by the server
-    int serverPathsCount;         //number of server paths
-    char *mapName;                //the name of the mapping
-    char *mapLockName;            //the name of the file that will be used as lock
-    pSyncMapping mapLock;         //the map Lock structure
-    pMapping mapping;             //the mapping structure
-    long long mapSize;            //the size of the mapping
-    mappingStructure *structure;  //the logic structure of the mapping
-    //TODO: Clients list
-} serverMonitor;
-
-/*function prototypes*/
-void check_params(int argc, char **argv, serverMonitor *server);
-void load_settings(serverMonitor *server);
-void initialize_mapping(serverMonitor *server);
+#include "include/server_monitor.h"
 
 // ===========================================================================
 // MAIN
@@ -38,23 +12,32 @@ int main(int argc, char **argv){
    //load settings
    load_settings(&server);
 
-   fprintf(stdout, "Creating mapping, initialize memory management, performing the first scan..\n");
-   initialize_mapping(&server);
-
-   //TODO: avvia server tcp
+   /********CRITICAL SECTION**********/
+   initialize_server(&server);  //the daemon starts in here
+   /********END CRITICAL SECTION******/
 
    //TODO: avvia demon se sei il primo server
-   //**********************    MAIN BODY   ********************************************
 
-   printf("Server %u is active!\n", server.ID);
-   //start daemon
-   /*while(true){
-      th_sleep(server.timeout)
+   printf("Server (ID=%u) is active!\n", server.ID);
+
+   //**********************    MAIN LOOP   ********************************************
+
+   while(1){
+         thread_sleep(server.timeout);
+         syncmapping_acquire(server.mapLock);
+         //NEED TO CHECK IF DAEMON IS ALIVE; IF NOT, START A NEW ONE
+
+         //GET ALL THE NOTIFICATION
+
+   }
+
       syncmapping_acquire(server.mapLock);
-      update(server.structure);
-      print_mappingstructure_state(server.structure);
+      printf("dentro\n");
+      thread_sleep(5);
+      printf("esco\n");
       syncmapping_release(server.mapLock);
-   }*/
+
+   exit(0);
    //DEBUG ELIMINATE PATH
    print_mappingstructure_state(server.structure);
    getchar();
@@ -78,6 +61,7 @@ int main(int argc, char **argv){
    if(delete_file(server.mapName) == -1)
       printf("Error deleting the file associated with the mapping!\n");
    //TODO: nsacco de roba
+
 }
 
 // ===========================================================================
@@ -161,49 +145,60 @@ void load_settings(serverMonitor *server){
 // ===========================================================================
 // initialize_mapping
 // ===========================================================================
-void initialize_mapping(serverMonitor *server){
- /*create the lock that manages the access to the file mapping*/
+void initialize_server(serverMonitor *server){
+   /*create the lock that manages the access to the file mapping*/
    if(syncmapping_createlock(&(server->mapLock), server->mapLockName) == -1){
       fprintf(stderr, "serverMonitor: Error while creating the lock file.\n");
       exit(0);
    }
-
    /*now acquire the lock.*/
    if(syncmapping_acquire(server->mapLock) == -1){
       fprintf(stderr, "serverMonitor: error while acquiring the lock.\n");
       exit(0);
    }
-   //CRITICAL SECTION
    /*check if the mapping alredy exists. If not, create one and map the file in
    memory. Start memory management*/
    int ret = create_mapping(&(server->mapping), server->mapName, server->mapSize * sizeof(char));
+
    if(ret == 0){ //the mapping was not there and has been created
-      server->ID = 0;
+      server->ID = 0; //so this is the first server
       char *pointer = get_mapping_pointer(server->mapping);
       //start memory management
-
       if(pmm_initialize_management(pointer, server->mapSize, NULL) == -1){
          fprintf(stderr, "serverMonitor: error while starting memory management.\n");
+         syncmapping_release(server->mapLock);
+         syncmapping_deletelock(server->mapLock);
+         delete_file(server->mapName);
          exit(0);
       }
       //initialize the mapping structure
-      int ret1 = initialize_mapping_structure(NULL, &(server->structure),
-                    server->timeout, (server->serverPaths)[0]);
+      int ret1 = initialize_mapping_structure(NULL, &(server->structure, server->timeout, (server->serverPaths)[0]);
       if(ret1 == -1){
          fprintf(stderr, "serverMonitor: error while initializing mapping structure.\n");
+         syncmapping_release(server->mapLock);
+         syncmapping_deletelock(server->mapLock);
+         delete_file(server->mapName);
          exit(0);
       }else if(ret1== -2){
          fprintf(stderr, "serverMonitor: the specified directory no longer exists.\n");
          /*since we are the first server and we fail, delete the mapping.*/
-         delete_mapping(server->mapping);
-         delete_file(server->mapName);
          syncmapping_release(server->mapLock);
+         syncmapping_deletelock(server->mapLock);
+         delete_file(server->mapName);
          exit(0);
       }
-   }else if(ret == 1){ //the mapping was alredy there
 
+      /*since it's the first process, we need to start the daemon that update the data structure*/
+      ret1 = create_daemon(server);
+      if(ret1 == -1){
+         fprintf(stderr, "serverMonitor: error while creating the daemon.\n");
+         return -1;
+      }
+   }else if(ret == 1){ //the mapping was alredy there
       if(open_mapping(&(server->mapping), server->mapName, server->mapSize * sizeof(char)) == -1){
          fprintf(stderr, "serverMonitor: error while opening the mapping.\n");
+         syncmapping_release(server->mapLock);
+         syncmapping_closelock(server->mapLock);
          exit(0);
       }
       char *pointer = get_mapping_pointer(server->mapping);
@@ -211,6 +206,8 @@ void initialize_mapping(serverMonitor *server){
       char *firstBlock = NULL;
       if(pmm_initialize_management(pointer, server->mapSize, (void **) &firstBlock) == -1){
          fprintf(stderr, "serverMonitor: error while starting memory management.\n");
+         syncmapping_release(server->mapLock);
+         syncmapping_closelock(server->mapLock);
          exit(0);
       }
       //initialize the mapping structure
@@ -218,18 +215,23 @@ void initialize_mapping(serverMonitor *server){
                 server->timeout, (server->serverPaths)[0]);
       if(ret1 == -1){
          fprintf(stderr, "serverMonitor: error while initializing mapping structure.\n");
+         syncmapping_release(server->mapLock);
+         syncmapping_closelock(server->mapLock);
          exit(0);
       } else if(ret1 == -2){
          fprintf(stderr, "serverMonitor: the specified directory no longer exists.\n");
          syncmapping_release(server->mapLock);
+         syncmapping_closelock(server->mapLock);
          exit(0);
       }
-
       server->ID = ret1;
    }else if(ret == -1){
       fprintf(stderr, "serverMonitor: error while creating the mapping.\n");
+      syncmapping_release(server->mapLock);
+      syncmapping_closelock(server->mapLock);
       exit(0);
    }
+   //FINISH with the mapping and server.
    if(syncmapping_release(server->mapLock) == -1){
      fprintf(stderr, "Error while releasing the file lock.\n");
      exit(0);

@@ -77,10 +77,10 @@ void *pmm_malloc(unsigned long req_size){
 // ===========================================================================
 // pmm_free
 // ===========================================================================
-int pmm_free(void *pointer){
+void pmm_free(void *pointer){
   if(!pointer || ((char *) pointer) > pmmLastValidPointer || ((char *)pointer) < pmmBasePointer){
       fprintf(stderr, "pmm_free called on invalid pointer (%p).\n", pointer);
-      return -1;
+      exit(0);
    }
 
    metadata *block = (metadata *) (((char *) pointer) - sizeof(metadata));

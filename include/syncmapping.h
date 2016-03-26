@@ -45,8 +45,21 @@
 
   // ===========================================================================
   //
+  // syncmapping_closelock
+  // Description: free all the resources of this server created with syncmapping_ceatelock.
+  // Other servers can still use the lock.
+  // Params:
+  //  - lock: a pSyncMapping object previously created with syncmapping_createlock
+  // Returns 0 on success, -1 otherwise
+  //
+  // ===========================================================================
+  int syncmapping_closelock(pSyncMapping lock);
+
+  // ===========================================================================
+  //
   // syncmapping_deletelock
   // Description: delete the lock file previously created with syncmapping_ceatelock
+  // Must be called by the last active process.
   // Params:
   //  - lock: a pSyncMapping object previously created with syncmapping_createlock
   // Returns 0 on success, -1 otherwise

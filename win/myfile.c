@@ -263,35 +263,19 @@ char *__get_mask_string(DWORD mask){
 		return NULL;
 	}
 	int ret = 0;
-	int permread = 0;
-	if(mask & FILE_GENERIC_READ){
-		ret = sprintf(maskString, "%c", 'r');
-		if(ret < 0) {
-			fprintf(stderr, "Error while getting the mask bit.\n");
-			free(maskString);
-			return NULL;
-		}
-		permread++;
+	char read = '-';
+	char write = '-';
+	char execute = '-';
+
+	if(mask & FILE_GENERIC_READ) read = 'r';
+	if(mask & FILE_GENERIC_WRITE) write = 'w';
+	if(mask & FILE_GENERIC_EXECUTE) execute = 'x';
+	ret = sprintf(maskString,"%c%c%c", read, write, execute);
+	if(ret < 0) {
+		fprintf(stderr, "Error while getting the mask bits.\n");
+		free(maskString);
+		return NULL;
 	}
-	if(mask & FILE_GENERIC_WRITE){
-		ret = sprintf(maskString + permread, "%c", 'w');
-		if(ret < 0) {
-			fprintf(stderr, "Error while getting the mask bit.\n");
-			free(maskString);
-			return NULL;
-		}
-		permread++;
-	}
-	if(mask & FILE_GENERIC_EXECUTE){
-		ret = sprintf(maskString + permread, "%c", 'x');
-		if(ret < 0) {
-			fprintf(stderr, "Error while getting the mask bit.\n");
-			free(maskString);
-			return NULL;
-		}
-		permread++;
-	}
-	maskString[permread] = '\0';
 	return maskString;
 }
 
@@ -367,12 +351,12 @@ char *__get_security_acls(char *filename, int *ret){
 		}
 		char modeace[10];
 		if(aclType == ACCESS_ALLOWED_ACE_TYPE){
-			sprintf(modeace, "%s", "ALLOW");
+			sprintf(modeace, " %s", "ALLOW");
 		}else if(aclType == ACCESS_DENIED_ACE_TYPE){
-			sprintf(modeace, "%s", "DENY");
+			sprintf(modeace, " %s", "DENY");
 		}
 		/*join the information collected in a unique string*/
-		byteReq = strlen(modeace) + strlen(sidname) + strlen(perms) + 5;
+		byteReq = strlen(modeace) + strlen(sidname) + strlen(perms) + 4;
 		char *stringace = malloc(sizeof(char) * byteReq);
 		if(!stringace){
 			fprintf(stderr, "Error while allocating memory.\n");
@@ -382,7 +366,7 @@ char *__get_security_acls(char *filename, int *ret){
 			free(tempPerm);
 			return NULL;
 		}
-		if(sprintf(stringace, "%s %s %s; ", modeace, sidname, perms) < 0){
+		if(sprintf(stringace, "%s %s %s;", modeace, sidname, perms) < 0){
 			fprintf(stderr, "Error during the generation of the ace string.\n");
 			free(pSec);
 			free(perms);
