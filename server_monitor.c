@@ -1,40 +1,5 @@
 #include "include/server_monitor.h"
 
-
-
-// ===========================================================================
-// cs_terminate_sever
-// NOTE: Assumption: this function is called inside a critical section
-// ===========================================================================
-void cs_terminate_sever(serverMonitor *str){
-   fprintf(stderr, "Terminating server...\n");
-   (str->structure)->serverCounter--;
-   if((str->structure)->daemonServer == str->ID) (str->structure)->daemonServer = -1;
-   if(unregister_server(str->structure, str->ID, str->serverPaths, str->serverPathsCount) == -1){
-      printf(stderr, "there have been errors while removing the server data from the mapping. Probably it is corrupted.\n");
-   }
-   syncmapping_release(str->mapLock);
-   if((str->structure)->serverCounter == 0){ //if it is the last server, delete the mapping
-      syncmapping_deletelock(str->mapLock);
-      if(delete_file(str->mapName) == -1) fprintf(stderr, "Error while deleting the mapping file. Delete it manually.\n");
-   }else{
-      syncmapping_closelock(str->mapLock);
-   }
-   exit(0);
-}
-
-// ===========================================================================
-// cs_terminate_sever_with_errors
-// NOTE: Assumption: this function is called inside a critical section
-// ===========================================================================
-void cs_terminate_sever_with_errors(serverMonitor *str){
-   fprintf(stderr, "Some errors have happened (errors message should have appeared before this one),"\
-   " so the server cannot continue executing. Before terminating, i'll try to leave the mapping normally.\n");
-   cs_terminate_sever(str);
-}
-
-
-
 // ===========================================================================
 // MAIN
 // ===========================================================================
@@ -62,14 +27,15 @@ int main(int argc, char **argv){
          syncmapping_acquire(server.mapLock);
          /*some checks first. If the daemon is signaled to be dead, start a new one.
          /*Also, we need to see if the deamon is inactive for a long period of time.
-         This could mean that the process which owned it has been killed. If it was
-         still alive, then it would kill itself having noticed a new daemon*/
+         This could mean that the process which owned it has been killed. If, instead, it is
+         still alive, then it will kill itself once noticed the new daemon*/
          long long current_time = get_current_time();
          if(current_time == -1){
             fprintf(stderr, "serverMonitor: error while getting the current time. Exit. \n");
             cs_terminate_sever_with_errors(&server);
          }
-         if(structure->daemonServer == -1 || (current_time - structure->lastUpdate) > (structure->refreshTime * 1.5)){
+         if(structure->daemonServer == -1 ||
+            (current_time - structure->lastUpdate) > (structure->refreshTime * DELAY_TOLLERANCE_FACTOR)){
             if(create_daemon(server) == -1){
                fprintf(stderr, "serverMonitor: error while creating the daemon.\n");
                cs_terminate_sever_with_errors(&server);
@@ -78,12 +44,53 @@ int main(int argc, char **argv){
          }
 
          //Now we can get notifications
-
-
+         receivedNotification *notificationsList;
+         int count;
+         if(get_notifications(server.structure, server.ID, &notificationsList, &count) == -1){
+            fprintf(stderr, "serverMonitor: error while getting the notifications list.\n");
+            cs_terminate_sever_with_errors(&server);
+         }
          //send notifications to clients
-
+         int i;
+         for(i = 0; i < count; i++){
+            printf("%s\n", get_string_representation(&(notificationsList[i]), server.startUpTime));
+         }
    }
 }
+
+// ===========================================================================
+// cs_terminate_sever
+// NOTE: Assumption: this function is called inside a critical section
+// ===========================================================================
+void cs_terminate_sever(serverMonitor *str){
+   printf("Terminating server...\n");
+   (str->structure)->serverCounter--;
+   if((str->structure)->daemonServer == str->ID) (str->structure)->daemonServer = -1;
+   if(unregister_server(str->structure, str->ID, str->serverPaths, str->serverPathsCount) == -1){
+      fprintf(stderr, "There have been errors while removing the server data from the mapping. Probably it is corrupted.\n");
+   }
+   delete_mapping(str->mapping);
+   if((str->structure)->serverCounter == 0){ //if it is the last server, delete the mapping
+      if(delete_file(str->mapName) == -1) fprintf(stderr, "Error while deleting the mapping file. Delete it manually.\n");
+      syncmapping_release(str->mapLock);
+      syncmapping_deletelock(str->mapLock);
+   }else{
+      syncmapping_release(str->mapLock);
+      syncmapping_closelock(str->mapLock);
+   }
+   exit(0);
+}
+
+// ===========================================================================
+// cs_terminate_sever_with_errors
+// NOTE: Assumption: this function is called inside a critical section
+// ===========================================================================
+void cs_terminate_sever_with_errors(serverMonitor *str){
+   fprintf(stderr, "Some errors have happened (errors message should have appeared before this one),"\
+   " so the server cannot continue executing. Before terminating, The program will try to leave the mapping normally.\n");
+   cs_terminate_sever(str);
+}
+
 
 // ===========================================================================
 // check_params
@@ -261,6 +268,6 @@ void initialize_server(serverMonitor *server){
    server->startUpTime = get_current_time();
    if(server->startUpTime == -1){
       fprintf(stderr, "serverMonitor: error while getting the current time.\n");
-      return -1;
+      exit(0);
    }
 }

@@ -19,5 +19,5 @@
    // Returns -1 in case of error, 0 in case of success
    //
    // ==========================================================================
-   int create_daemon(serverMonitor *str, pToThread *thr);
+   int create_daemon(serverMonitor *str);
 #endif

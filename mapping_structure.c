@@ -39,6 +39,12 @@ int initialize_mapping_structure(char *memoryBlock, mappingStructure **str,
 		}else if(ret == -2){
 				return -2; //path no longer available
 		}
+		long long lastUpdate = get_current_time();
+		if(lastUpdate == -1){
+			fprintf(stderr, "initialize_mapping_structure: error while getting the current time.\n");
+			return -1;
+		}
+		(*str)->lastUpdate = lastUpdate;
 		/*update refresh time if necessary*/
 		(*str)->refreshTime = (*str)->refreshTime > refTime ? refTime : (*str)->refreshTime;
 		(*str)->serverCounter = (*str)->serverCounter + 1;

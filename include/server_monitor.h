@@ -12,6 +12,8 @@
    #include "thread.h"
    #include "time_utilities.h"
 
+   #define DELAY_TOLLERANCE_FACTOR 1.3
+
    typedef struct _serverMonitor{
        int ID;
        int timeout;                  //frequence by which the monitor must check for updates
@@ -70,4 +72,18 @@
    //
    // ==========================================================================
    void initialize_server(serverMonitor *server);
+
+
+   // ===========================================================================
+   // cs_terminate_sever
+   // NOTE: Assumption: this function is called inside a critical section
+   // ===========================================================================
+   void cs_terminate_sever(serverMonitor *str);
+
+
+   // ===========================================================================
+   // cs_terminate_sever_with_errors
+   // NOTE: Assumption: this function is called inside a critical section
+   // ===========================================================================
+   void cs_terminate_sever_with_errors(serverMonitor *str);
 #endif

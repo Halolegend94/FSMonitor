@@ -90,7 +90,7 @@
 	// Params:
 	// 	-	str: the pointer to the mapping structure
 	//		-	sid: the server id
-	//		-	list: a pointer to a location where the pointer to a list of receivedNotification will
+	//		-	list: a pointer to a location where a pointer to a list of receivedNotification will
 	// 	 	be stored.
 	// 	-	count: a pointer to a location where the number of notifications retrieved will be stored
 	// Returns: 0 in case of success, -1 otherwise

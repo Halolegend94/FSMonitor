@@ -30,10 +30,10 @@ LOBJ=-c
 
 server-win : server_monitor.c win\utilities.c mem_management.obj filesystree.obj mapping_structure.obj \
 	mapping.obj myfile.obj settings_parser.obj syncmapping.obj notifications_bucket.obj utilities.obj \
-	daemon.obj thread.obj time_utilities.obj
+	daemon.obj thread.obj time_utilities.obj received_notification.obj
 	$(WC) $(WNAME)"server" server_monitor.c mem_management.obj filesystree.obj daemon.obj thread.obj  \
 		mapping_structure.obj mapping.obj myfile.obj settings_parser.obj syncmapping.obj \
-		notifications_bucket.obj utilities.obj time_utilities.obj
+		notifications_bucket.obj utilities.obj time_utilities.obj received_notification.obj
 #	 $(WCLEAN) *.obj
 
 ####################################################################################################
@@ -48,6 +48,9 @@ filesystree.obj : filesystree.c
 
 daemon.obj : daemon.c
 	$(WC) $(WOBJ) daemon.c
+
+received_notification.obj : received_notification.c
+	$(WC) $(WOBJ) received_notification.c
 
 notifications_bucket.obj : notifications_bucket.c
 	$(WC) $(WOBJ) notifications_bucket.c
@@ -88,10 +91,10 @@ thread.obj : "win\thread.c"
 
 server-linux : server_monitor.c mem_management.o filesystree.o mapping_structure.o \
 	mapping.o myfile.o settings_parser.o syncmapping.o notifications_bucket.o thread.o daemon.o \
-	time_utilities.o
+	time_utilities.o received_notification.o
 	$(LC) $(LNAME)"server" server_monitor.c mem_management.o filesystree.o thread.o daemon.o \
 		mapping_structure.o mapping.o myfile.o settings_parser.o syncmapping.o notifications_bucket.o \
-		time_utilities.o
+		time_utilities.o received_notification.o
 
 ####################################################################################################
 # platform indipendent
@@ -105,6 +108,9 @@ filesystree.o : filesystree.c
 
 daemon.o : daemon.c
 	$(LC) $(LOBJ) daemon.c
+	
+received_notification.o : received_notification.c
+	$(LC) $(LOBJ) received_notification.c
 
 notifications_bucket.o : notifications_bucket.c
 	$(LC) $(LOBJ) notifications_bucket.c
