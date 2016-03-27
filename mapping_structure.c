@@ -162,7 +162,7 @@ int unregister_server(mappingStructure *str, int sid, char **pathList, int count
 			  if(__unmark_server_subtree(root, tokens, 0, numTok - 1) == -1) return -1;
 		  }
 	  }
-	  if(__dfs_clean_subtree(root) == -1);
+	  if(__dfs_clean_subtree(root) == -1) return -1;
 	  return 0;
   }
 
@@ -411,7 +411,17 @@ int __first_scan(fstNode *root, char *path){
 // ===========================================================================
 int update(mappingStructure *str){
 	fstNode *root = pmm_offset_to_pointer(str->off_fileSystemTree);
-	return __scan(root, "", str, 0);
+	if(__scan(root, "", str, 0) == -1){
+		fprintf(stderr, "update: error while scanning the filesystem.\n");
+		return -1;
+	}
+	long long ct = get_current_time();
+	if(ct == -1){
+		fprintf(stderr, "update: error while getting the current time.\n");
+		return -1;
+	}
+	str->lastUpdate = ct;
+	return 0;
 }
 
 // ===========================================================================

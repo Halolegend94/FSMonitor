@@ -30,10 +30,10 @@ LOBJ=-c
 
 server-win : server_monitor.c win\utilities.c mem_management.obj filesystree.obj mapping_structure.obj \
 	mapping.obj myfile.obj settings_parser.obj syncmapping.obj notifications_bucket.obj utilities.obj \
-	daemon.obj thread.obj
+	daemon.obj thread.obj time_utilities.obj
 	$(WC) $(WNAME)"server" server_monitor.c mem_management.obj filesystree.obj daemon.obj thread.obj  \
 		mapping_structure.obj mapping.obj myfile.obj settings_parser.obj syncmapping.obj \
-		notifications_bucket.obj utilities.obj
+		notifications_bucket.obj utilities.obj time_utilities.obj
 #	 $(WCLEAN) *.obj
 
 ####################################################################################################
@@ -68,6 +68,9 @@ mapping.obj : "win\mapping.c"
 myfile.obj : "win\myfile.c"
 	$(WC) $(WOBJ) win\myfile.c
 
+time_utilities.obj : win\time_utilities.c
+	$(WC) $(WOBJ) win\time_utilities.c
+
 utilities.obj :  win\utilities.c
 	$(WC) $(WOBJ)  win\utilities.c
 
@@ -84,10 +87,12 @@ thread.obj : "win\thread.c"
 ####################################################################################################
 
 server-linux : server_monitor.c mem_management.o filesystree.o mapping_structure.o \
-	mapping.o myfile.o settings_parser.o syncmapping.o notifications_bucket.o thread.o daemon.o
+	mapping.o myfile.o settings_parser.o syncmapping.o notifications_bucket.o thread.o daemon.o \
+	time_utilities.o
 	$(LC) $(LNAME)"server" server_monitor.c mem_management.o filesystree.o thread.o daemon.o \
-		mapping_structure.o mapping.o myfile.o settings_parser.o syncmapping.o notifications_bucket.o
-	$(LCLEAN) *.o
+		mapping_structure.o mapping.o myfile.o settings_parser.o syncmapping.o notifications_bucket.o \
+		time_utilities.o
+
 ####################################################################################################
 # platform indipendent
 ####################################################################################################
@@ -98,7 +103,7 @@ mapping_structure.o : mapping_structure.c
 filesystree.o : filesystree.c
 	$(LC) $(LOBJ) filesystree.c
 
-daemon.0 : daemon.c
+daemon.o : daemon.c
 	$(LC) $(LOBJ) daemon.c
 
 notifications_bucket.o : notifications_bucket.c
@@ -118,6 +123,9 @@ mapping.o : linux/mapping.c
 
 myfile.o : linux/myfile.c
 	$(LC) $(LOBJ) "linux/myfile.c"
+
+time_utilities.o : linux/time_utilities.c
+	$(LC) $(LOBJ) "linux/time_utilities.c"
 
 thread.o : linux/thread.c
 	$(LC) $(LOBJ) "linux/thread.c"

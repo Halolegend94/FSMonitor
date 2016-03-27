@@ -10,6 +10,7 @@
    #include "syncmapping.h"
    #include "myfile.h"
    #include "thread.h"
+   #include "time_utilities.h"
 
    typedef struct _serverMonitor{
        int ID;
@@ -22,12 +23,51 @@
        pMapping mapping;             //the mapping structure
        long long mapSize;            //the size of the mapping
        mappingStructure *structure;  //the logic structure of the mapping
-       pToThread *thread;             //object that points to the daemon thread, if this process owns it
+       pToThread *thread;            //object that points to the daemon thread, if this process owns it
+       long long startUpTime;        //the time the server was started
        //TODO: Clients list
    } serverMonitor;
 
    /*function prototypes*/
+   // ==========================================================================
+   //
+   // main [ENTRY POINT]
+   //
+   // ==========================================================================
+   int main(int argc, char **argv);
+
+   // ==========================================================================
+   //
+   // check_params
+   // Description: this function check if the params to the main function are
+   // correct (the path is valid).
+   // Params:
+   //    -  argc, argv: main params
+   //    -  server: the pointer to the serverMonitor structure of the process.
+   //
+   // ==========================================================================
    void check_params(int argc, char **argv, serverMonitor *server);
+
+   // ==========================================================================
+   //
+   // load_settings
+   // Description: this function loads all the settings from the settings.txt file
+   // into the structure pointed by "server" parameter
+   // Params:
+   //    -  server: the pointer to the serverMonitor structure of the process
+   //
+   // ==========================================================================
    void load_settings(serverMonitor *server);
-   void initialize_mapping(serverMonitor *server);
+
+   // ==========================================================================
+   //
+   // initialize_server
+   // Description: this function intializes all the structures needed by the process.
+   // It creates the mapping, the lock, and performs the first scan for the path specified
+   // through command line.
+   // Params:
+   //    -  server: the pointer to the serverMonitor structure of the process
+   //
+   // ==========================================================================
+   void initialize_server(serverMonitor *server);
 #endif

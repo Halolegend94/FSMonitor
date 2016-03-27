@@ -5,6 +5,7 @@
 	#include "filesystree.h"
 	#include "mem_management.h"
 	#include "myfile.h"
+	#include "time_utilities.h"
 	#include "received_notification.h"
 	#include <stdio.h>
 	#include <stdlib.h>
@@ -12,13 +13,14 @@
 	/*The following structure is used to organize data inside
 	the file mapping.*/
 	typedef struct _mappingStructure{
-		unsigned long off_fileSystemTree; //offset to filesystem tree structure
-		int serverCounter; //used to generate server ID
-		int daemonServer;  //indicates witch is the server that runs the deamon
+		unsigned long off_fileSystemTree;//offset to filesystem tree structure
+		int serverCounter; 					//how many servers are online
+		int daemonServer;  					//indicates witch is the server that runs the deamon
 		unsigned long off_notifications; //offset to notifications bucket
-		int refreshTime;   //how much time needs to pass before another
-					    					//check is done by the deamon
-		int idCounter;    //incremented by 1 each time a server registers.
+		int refreshTime;   					//how much time needs to pass before another
+					    							//check is done by the deamon
+		int idCounter;    					//incremented by 1 each time a server registers. Used to generate server ID
+		unsigned long lastUpdate; 			//the last time the structure was updated
 	} mappingStructure;
 
 	/*function prototypes*/
