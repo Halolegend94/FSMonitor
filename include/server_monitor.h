@@ -7,7 +7,7 @@
    //GLOBAL VARIABLES: serverStructure server
 
    #define DELAY_TOLLERANCE_FACTOR 1.3
-
+   #define INITIAL_DELAY 2
    /*function prototypes*/
    // ==========================================================================
    //

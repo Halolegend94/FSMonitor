@@ -17,10 +17,10 @@ unsigned long long get_current_time(){
 // ==========================================================================
 long long get_relative_time(unsigned long long fileModTime, unsigned long long serverStartUpTime){
    if(fileModTime < serverStartUpTime){
-      fprintf(stderr, "fileModTIme (%lli) is minor than serverStartUpTime (%lli)!\n", fileModTime,
+      fprintf(stderr, "fileModTIme (%llu) is minor than serverStartUpTime (%llu)!\n", fileModTime,
          serverStartUpTime);
       return -1;
    }
-   long long tmp =(long long) (fileModTime - serverStartUpTime);
+   long long tmp = (long long) (fileModTime - serverStartUpTime);
    return tmp;
 }

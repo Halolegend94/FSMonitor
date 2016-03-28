@@ -21,9 +21,10 @@ int main(int argc, char **argv){
    //TODO: avvia server tcp
    printf("Server (ID=%u) is active!\n", server.ID);
 
+   thread_sleep(INITIAL_DELAY); //so serverMonitor and daemon will be active at different time windows
+   
    //**********************    MAIN LOOP   ********************************************
    mappingStructure *structure = server.structure; //mapping structure, for easier access
-
    while(1){
          if(thread_sleep(server.timeout) == -1) //signal received..
             while(1); //wait for imminent termination
@@ -49,7 +50,7 @@ int main(int argc, char **argv){
             cs_terminate_server();
          }
          if(structure->daemonServer == -1 ||
-            (current_time - structure->lastUpdate) > (structure->refreshTime * DELAY_TOLLERANCE_FACTOR)){
+            get_relative_time(current_time, structure->lastUpdate) > (structure->refreshTime * DELAY_TOLLERANCE_FACTOR)){
             printf("Creating a new daemon..\n");
             if(create_daemon() == -1){
                fprintf(stderr, "serverMonitor: error while creating the daemon. Aborting execution..\n");

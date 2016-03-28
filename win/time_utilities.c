@@ -4,14 +4,14 @@
 // ==========================================================================
 // get_current_time
 // ==========================================================================
-long long get_current_time(){
+unsigned long long get_current_time(){
    SYSTEMTIME st;
    FILETIME ft;
    GetSystemTime(&st);
    //Convert from system time to filetime
    if(!SystemTimeToFileTime(&st, &ft)){
       fprintf(stderr, "get_current_time: error while converting from systemtime to filetime.\n");
-      return -1;
+      return 0;
    }
    ULARGE_INTEGER large;
    large.LowPart = ft.dwLowDateTime;
@@ -22,9 +22,9 @@ long long get_current_time(){
 // ==========================================================================
 // get_relative_time
 // ==========================================================================
-long long get_relative_time(long long fileModTime, long long serverStartUpTime){
+long long get_relative_time(unsigned long long fileModTime, unsigned long long serverStartUpTime){
    if(fileModTime < serverStartUpTime){
-      fprintf(stderr, "fileModTIme (%lli) is minor than serverStartUpTime (%lli)!\n", fileModTime,
+      fprintf(stderr, "fileModTIme (%llu) is minor than serverStartUpTime (%llu)!\n", fileModTime,
          serverStartUpTime);
       return -1;
    }

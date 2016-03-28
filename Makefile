@@ -13,16 +13,20 @@
 # VARIABLES
 #
 ####################################################################################################
+DOBJ=obj
+
+MKDIR=mkdir
 WC=cl
 WNAME=/Fe
 WOBJ=/c
 WCLEAN=DEL
-#
+
 LCLEAN=rm -f
 LC=gcc -pthread --static -g
 LNAME=-o
 LOBJ=-c
 LLINK=-lm
+
 ####################################################################################################
 #
 # WINDOWS TARGETS
