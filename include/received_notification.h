@@ -4,6 +4,7 @@
    #include "time_utilities.h"
    #include <stdio.h>
    #include <stdlib.h>
+   #include <string.h>
    #include <math.h>
 
    /*the following structure represents a notification received by a server and saved in its

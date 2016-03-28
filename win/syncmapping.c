@@ -9,13 +9,13 @@ struct syncMapping {
 // ===========================================================================
 // syncmapping_createlock
 // ===========================================================================
-int syncmapping_createlock(struct syncMapping **lock, char *lockname){
+int syncmapping_createlock(struct syncMapping **lock){
    *lock = malloc(sizeof(struct syncMapping));
    if(!(*lock)){
       fprintf(stderr, "syncmapping_createlock: error while allocating memory.\n");
       return -1;
    }
-   (*lock)->mutex = CreateMutex(NULL, FALSE, lockname);
+   (*lock)->mutex = CreateMutex(NULL, FALSE, "syncmap");
    if((*lock)->mutex == NULL){
       fprintf(stderr, "syncmapping_createlock: error while creating the mutex.\n");
       return -1;

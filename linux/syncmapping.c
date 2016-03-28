@@ -3,39 +3,33 @@
 #include <sys/file.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <semaphore.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <errno.h>
 
 //structure that represents a lock file
 struct syncMapping{
    sem_t *sem;
-   char *semName;
 };
 
 // ===========================================================================
 // syncmapping_createlock
 // ===========================================================================
-int syncmapping_createlock(struct syncMapping **lock, char *semName){
+int syncmapping_createlock(struct syncMapping **lock){
    //allocate a new syncMapping object
    *lock = (struct syncMapping *) malloc(sizeof(struct syncMapping));
    if(!(*lock)){
       fprintf(stderr, "Error while allocating memory.\n");
-      close(fd);
       return -1;
    }
-   char *tmp = malloc(sizeof(char) * (strlen(semName) + 2));
-   if(!tmp){
-      fprintf(stderr, "syncmapping_createlock: error while allocating memory.\n");
-      return -1;
-   }
-   if(sprintf(tmp, "/%s", semName) < 0){
-      fprintf(stderr, "%s\n", "syncmapping_createlock: sprintf error.\n");
-      return -1;
-   }
-   (*lock)->sem = sem_open(tmp, O_CREAT, 0666, 1);
+   sem_unlink("/syncmap");
+   (*lock)->sem = sem_open("/syncmap", O_CREAT, O_RDWR, 1);
    if((*lock)->sem == SEM_FAILED){
       fprintf(stderr, "syncmapping_createlock: error while creating the semaphore.\n");
+      perror("Errore");
       return -1;
    }
-   (*lock)->semName = tmp;
    return 0;
 }
 
@@ -71,7 +65,6 @@ int syncmapping_closelock(struct syncMapping *lock){
       fprintf(stderr, "Error while closing the semaphor.\n");
       return -1;
    }
-   free(lock->semName);
    free(lock);
    return 0;
 }
@@ -84,11 +77,10 @@ int syncmapping_deletelock(struct syncMapping *lock){
       fprintf(stderr, "Error while closing the semaphor.\n");
       return -1;
    }
-   if(sem_unlink(lock->name) == -1){
+   if(sem_unlink("/syncmap") == -1){
       fprintf(stderr, "Error while deleting the semaphor.\n");
       return -1;
    }
-   free(lock->semName);
    free(lock);
    return 0;
 }

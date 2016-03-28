@@ -17,11 +17,12 @@ WC=cl
 WNAME=/Fe
 WOBJ=/c
 WCLEAN=DEL
-
+#
 LCLEAN=rm -f
-LC=gcc --static -g
+LC=gcc -pthread --static -g
 LNAME=-o
 LOBJ=-c
+LLINK=-lm
 ####################################################################################################
 #
 # WINDOWS TARGETS
@@ -30,10 +31,12 @@ LOBJ=-c
 
 server-win : server_monitor.c win\utilities.c mem_management.obj filesystree.obj mapping_structure.obj \
 	mapping.obj myfile.obj settings_parser.obj syncmapping.obj notifications_bucket.obj utilities.obj \
-	daemon.obj thread.obj time_utilities.obj received_notification.obj
+	daemon.obj thread.obj time_utilities.obj received_notification.obj signal_handler.obj \
+	server_commons.obj
 	$(WC) $(WNAME)"server" server_monitor.c mem_management.obj filesystree.obj daemon.obj thread.obj  \
 		mapping_structure.obj mapping.obj myfile.obj settings_parser.obj syncmapping.obj \
-		notifications_bucket.obj utilities.obj time_utilities.obj received_notification.obj
+		notifications_bucket.obj utilities.obj time_utilities.obj received_notification.obj \
+		signal_handler.obj server_commons.obj
 #	 $(WCLEAN) *.obj
 
 ####################################################################################################
@@ -45,6 +48,9 @@ mapping_structure.obj : mapping_structure.c
 
 filesystree.obj : filesystree.c
 	$(WC) $(WOBJ) filesystree.c
+
+server_commons.obj : server_commons.c
+	$(WC) $(WOBJ) server_commons.c
 
 daemon.obj : daemon.c
 	$(WC) $(WOBJ) daemon.c
@@ -71,6 +77,9 @@ mapping.obj : "win\mapping.c"
 myfile.obj : "win\myfile.c"
 	$(WC) $(WOBJ) win\myfile.c
 
+signal_handler.obj : win\signal_handler.c
+	$(WC) $(WOBJ) win\signal_handler.c
+
 time_utilities.obj : win\time_utilities.c
 	$(WC) $(WOBJ) win\time_utilities.c
 
@@ -91,10 +100,10 @@ thread.obj : "win\thread.c"
 
 server-linux : server_monitor.c mem_management.o filesystree.o mapping_structure.o \
 	mapping.o myfile.o settings_parser.o syncmapping.o notifications_bucket.o thread.o daemon.o \
-	time_utilities.o received_notification.o
+	time_utilities.o received_notification.o signal_handler.o server_commons.o
 	$(LC) $(LNAME)"server" server_monitor.c mem_management.o filesystree.o thread.o daemon.o \
 		mapping_structure.o mapping.o myfile.o settings_parser.o syncmapping.o notifications_bucket.o \
-		time_utilities.o received_notification.o
+		time_utilities.o received_notification.o signal_handler.o server_commons.o $(LLINK)
 
 ####################################################################################################
 # platform indipendent
@@ -108,7 +117,10 @@ filesystree.o : filesystree.c
 
 daemon.o : daemon.c
 	$(LC) $(LOBJ) daemon.c
-	
+
+server_commons.o : server_commons.c
+	$(LC) $(LOBJ) server_commons.c
+
 received_notification.o : received_notification.c
 	$(LC) $(LOBJ) received_notification.c
 
@@ -132,6 +144,9 @@ myfile.o : linux/myfile.c
 
 time_utilities.o : linux/time_utilities.c
 	$(LC) $(LOBJ) "linux/time_utilities.c"
+
+signal_handler.o : linux/signal_handler.c
+	$(LC) $(LOBJ) "linux/signal_handler.c"
 
 thread.o : linux/thread.c
 	$(LC) $(LOBJ) "linux/thread.c"

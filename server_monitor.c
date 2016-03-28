@@ -1,44 +1,59 @@
 #include "include/server_monitor.h"
 
+/*Global variables*/
+ serverStructure server; //all the information about the server will be stored here
+
 // ===========================================================================
 // MAIN
 // ===========================================================================
 int main(int argc, char **argv){
 
-   serverMonitor server; //all the information about the server will be stored here
-   check_params(argc, argv, &server);
+   check_params(argc, argv);
+   load_settings();
+   initialize_server();  //include a critical section, the daemon starts in here
 
-   fprintf(stdout, "Loading settings..\n");
-   //load settings
-   load_settings(&server);
-
-   /********CRITICAL SECTION**********/
-   initialize_server(&server);  //the daemon starts in here
-   /********END CRITICAL SECTION******/
+   //Install CTRL+C handler
+   if(install_signal_handler(ctrlc_handler) == -1){
+       fprintf(stderr, "serverMonitor: error while installing the ctrl+c handler.\n");
+       terminate_server();
+   }
 
    //TODO: avvia server tcp
-
    printf("Server (ID=%u) is active!\n", server.ID);
 
    //**********************    MAIN LOOP   ********************************************
-   mappingStructure *structure = server.structure; //more clean in this way
+   mappingStructure *structure = server.structure; //mapping structure, for easier access
+
    while(1){
-         thread_sleep(server.timeout);
-         syncmapping_acquire(server.mapLock);
+         if(thread_sleep(server.timeout) == -1) //signal received..
+            while(1); //wait for imminent termination
+
+         syncmapping_acquire(server.mapLock); //Begin critical section
+         /*the following check is done to avoid race conditions:
+            - Signal ctrl+c is received and the handler executes, leave the critical section,
+            and it is stopped before it can terminate the process.
+            - This thread (monitor) enters the critical section and accesses the mapping
+            that has been deleted. ERROR.
+        */
+         if(server.isActive == 0){
+             syncmapping_release(server.mapLock);
+             break;
+         }
          /*some checks first. If the daemon is signaled to be dead, start a new one.
          /*Also, we need to see if the deamon is inactive for a long period of time.
          This could mean that the process which owned it has been killed. If, instead, it is
-         still alive, then it will kill itself once noticed the new daemon*/
-         long long current_time = get_current_time();
-         if(current_time == -1){
-            fprintf(stderr, "serverMonitor: error while getting the current time. Exit. \n");
-            cs_terminate_sever_with_errors(&server);
+         still alive, then it will kill itself once noticed the new daemon.*/
+         unsigned long long current_time = get_current_time();
+         if(current_time == 0){
+            fprintf(stderr, "serverMonitor: error while getting the current time. Aborting execution.\n");
+            cs_terminate_server();
          }
          if(structure->daemonServer == -1 ||
             (current_time - structure->lastUpdate) > (structure->refreshTime * DELAY_TOLLERANCE_FACTOR)){
-            if(create_daemon(server) == -1){
-               fprintf(stderr, "serverMonitor: error while creating the daemon.\n");
-               cs_terminate_sever_with_errors(&server);
+            printf("Creating a new daemon..\n");
+            if(create_daemon() == -1){
+               fprintf(stderr, "serverMonitor: error while creating the daemon. Aborting execution..\n");
+               cs_terminate_server();
             }
             structure->daemonServer = server.ID; //this server is the owner of the daemon
          }
@@ -47,55 +62,38 @@ int main(int argc, char **argv){
          receivedNotification *notificationsList;
          int count;
          if(get_notifications(server.structure, server.ID, &notificationsList, &count) == -1){
-            fprintf(stderr, "serverMonitor: error while getting the notifications list.\n");
-            cs_terminate_sever_with_errors(&server);
+            fprintf(stderr, "serverMonitor: error while getting the notifications list. Aborting execution..\n");
+            cs_terminate_server();
          }
          //send notifications to clients
          int i;
          for(i = 0; i < count; i++){
             printf("%s\n", get_string_representation(&(notificationsList[i]), server.startUpTime));
          }
-   }
+         syncmapping_release(server.mapLock);
+     }
 }
 
-// ===========================================================================
-// cs_terminate_sever
-// NOTE: Assumption: this function is called inside a critical section
-// ===========================================================================
-void cs_terminate_sever(serverMonitor *str){
-   printf("Terminating server...\n");
-   (str->structure)->serverCounter--;
-   if((str->structure)->daemonServer == str->ID) (str->structure)->daemonServer = -1;
-   if(unregister_server(str->structure, str->ID, str->serverPaths, str->serverPathsCount) == -1){
-      fprintf(stderr, "There have been errors while removing the server data from the mapping. Probably it is corrupted.\n");
-   }
-   delete_mapping(str->mapping);
-   if((str->structure)->serverCounter == 0){ //if it is the last server, delete the mapping
-      if(delete_file(str->mapName) == -1) fprintf(stderr, "Error while deleting the mapping file. Delete it manually.\n");
-      syncmapping_release(str->mapLock);
-      syncmapping_deletelock(str->mapLock);
-   }else{
-      syncmapping_release(str->mapLock);
-      syncmapping_closelock(str->mapLock);
-   }
-   exit(0);
-}
+/////////////////////////////////////////////////////////////////////////////////////////
+//
+//                     SUPPORT FUNCTIONS
+//
+/////////////////////////////////////////////////////////////////////////////////////////
 
 // ===========================================================================
-// cs_terminate_sever_with_errors
-// NOTE: Assumption: this function is called inside a critical section
+// ctrlc_handler
+// NOTE: this will be executed on a different thread. Param is not used. See signal_handler.c
 // ===========================================================================
-void cs_terminate_sever_with_errors(serverMonitor *str){
-   fprintf(stderr, "Some errors have happened (errors message should have appeared before this one),"\
-   " so the server cannot continue executing. Before terminating, The program will try to leave the mapping normally.\n");
-   cs_terminate_sever(str);
+void *ctrlc_handler(void *p){
+    printf("\nCTRL+C received: starting shutdown process, wait.\n");
+    terminate_server();
+    return NULL; //this will never be executed
 }
-
 
 // ===========================================================================
 // check_params
 // ===========================================================================
-void check_params(int argc, char **argv, serverMonitor *server){
+void check_params(int argc, char **argv){
    if(argc != 2){
       fprintf(stderr, "serverMonitor: you need to pass the initial path to monitor.\n");
       exit(0);
@@ -105,31 +103,32 @@ void check_params(int argc, char **argv, serverMonitor *server){
       exit(0);
    }
    if(is_directory(argv[1]) == 0){
-      fprintf(stderr, "severMonitor: the specified path is not a valid directory.\n");
+      fprintf(stderr, "serverMonitor: the specified path is not a valid directory.\n");
       exit(0);
    }
    int len = strlen(argv[1]);
    if(argv[1][len-1] == '\\' || argv[1][len-1] == '/') argv[1][len-1] = '\0';
 
-   server->serverPaths = malloc(sizeof(char *));
-   if(!(server->serverPaths)){
+   server.serverPaths = malloc(sizeof(char *));
+   if(!(server.serverPaths)){
       fprintf(stderr, "serverMonitor: error while allocating memory.\n");
       exit(0);
    }
-   server->serverPaths[0] = malloc(sizeof(char) * (strlen(argv[1]) + 1));
-   if(!(server->serverPaths[0])){
+   server.serverPaths[0] = malloc(sizeof(char) * (strlen(argv[1]) + 1));
+   if(!(server.serverPaths[0])){
       fprintf(stderr, "serverMonitor: error while allocating memory.\n");
       exit(0);
    }
-   strcpy(server->serverPaths[0], argv[1]);
-   server->serverPathsCount = 1;
+   strcpy(server.serverPaths[0], argv[1]);
+   server.serverPathsCount = 1;
 }
 
 // ===========================================================================
 // load_settings
 // ===========================================================================
-void load_settings(serverMonitor *server){
-   settingsList loadedSettings;
+void load_settings(){
+    printf("Loading settings..\n");
+    settingsList loadedSettings;
    if(parse_settings("settings.txt", &loadedSettings) == -1){
       fprintf(stderr, "serverMonitor: error while loading the settings file.\n");
       exit(0);
@@ -139,19 +138,14 @@ void load_settings(serverMonitor *server){
       fprintf(stderr, "serverMonitor: error while calling get_setting_by_name\n");
       exit(0);
    }
-   (*server).timeout = atoi(t1);
+   server.timeout = atoi(t1);
    free(t1);
-   if((*server).timeout == 0){
+   if(server.timeout == 0){
       fprintf(stderr, "serverMonitor: timeout value not valid.\n");
       exit(0);
    }
-   (*server).mapName = get_setting_by_name("mapName", &loadedSettings);
-   if(!(*server).mapName){
-      fprintf(stderr, "serverMonitor: error while calling get_setting_by_name\n");
-      exit(0);
-   }
-   (*server).mapLockName = get_setting_by_name("mapLockName", &loadedSettings);
-   if(!(*server).mapLockName){
+   server.mapName = get_setting_by_name("mapName", &loadedSettings);
+   if(!server.mapName){
       fprintf(stderr, "serverMonitor: error while calling get_setting_by_name\n");
       exit(0);
    }
@@ -161,112 +155,114 @@ void load_settings(serverMonitor *server){
       fprintf(stderr, "serverMonitor: error while calling get_setting_by_name\n");
       exit(0);
    }
-   (*server).mapSize = atoi(t2) * (1024 * 1024);
-   if((*server).mapSize == 0){
+   server.mapSize = atoi(t2) * (1024 * 1024);
+   if(server.mapSize == 0){
       fprintf(stderr, "serverMonitor: error while calling get_setting_by_name\n");
       exit(0);
    }
    free(t2);
    free_settings_structure(&loadedSettings);
+
+   server.isActive = 1;
 }
 
 // ===========================================================================
 // initialize_server
 // ===========================================================================
-void initialize_server(serverMonitor *server){
+void initialize_server(){
+    printf("Initializing data structures..\n");
    /*create the lock that manages the access to the file mapping*/
-   if(syncmapping_createlock(&(server->mapLock), server->mapLockName) == -1){
+   if(syncmapping_createlock(&(server.mapLock)) == -1){
       fprintf(stderr, "serverMonitor: Error while creating the lock file.\n");
       exit(0);
    }
    /*now acquire the lock.*/
-   if(syncmapping_acquire(server->mapLock) == -1){
+   if(syncmapping_acquire(server.mapLock) == -1){
       fprintf(stderr, "serverMonitor: error while acquiring the lock.\n");
       exit(0);
    }
    /*check if the mapping alredy exists. If not, create one and map the file in
    memory. Start memory management*/
-   int crMapReturnValue = create_mapping(&(server->mapping), server->mapName, server->mapSize * sizeof(char));
+   int crMapReturnValue = create_mapping(&(server.mapping), server.mapName, server.mapSize * sizeof(char));
 
    if(crMapReturnValue == 0){ //the mapping was not there and has been created
-      server->ID = 0; //so this is the first server
-      char *pointer = get_mapping_pointer(server->mapping);
+      server.ID = 0; //so this is the first server
+      char *pointer = get_mapping_pointer(server.mapping);
       //start memory management
-      if(pmm_initialize_management(pointer, server->mapSize, NULL) == -1){
+      if(pmm_initialize_management(pointer, server.mapSize, NULL) == -1){
          fprintf(stderr, "serverMonitor: error while starting memory management.\n");
-         syncmapping_release(server->mapLock);
-         syncmapping_deletelock(server->mapLock);
-         delete_file(server->mapName);
+         syncmapping_release(server.mapLock);
+         syncmapping_deletelock(server.mapLock);
+         delete_file(server.mapName);
          exit(0);
       }
       //initialize the mapping structure
-      int ims = initialize_mapping_structure(NULL, &(server->structure), server->timeout, (server->serverPaths)[0]);
+      int ims = initialize_mapping_structure(NULL, &(server.structure), server.timeout, (server.serverPaths)[0]);
       if(ims == -1){
          fprintf(stderr, "serverMonitor: error while initializing mapping structure.\n");
-         syncmapping_release(server->mapLock);
-         syncmapping_deletelock(server->mapLock);
-         delete_file(server->mapName);
+         syncmapping_release(server.mapLock);
+         syncmapping_deletelock(server.mapLock);
+         delete_file(server.mapName);
          exit(0);
       }else if(ims == -2){
          fprintf(stderr, "serverMonitor: the specified directory no longer exists.\n");
          /*since we are the first server and we fail, delete the mapping.*/
-         syncmapping_release(server->mapLock);
-         syncmapping_deletelock(server->mapLock);
-         delete_file(server->mapName);
+         syncmapping_release(server.mapLock);
+         syncmapping_deletelock(server.mapLock);
+         delete_file(server.mapName);
          exit(0);
       }
-
       /*since it's the first process, we need to start the daemon that update the data structure*/
-      ims = create_daemon(server);
+      ims = create_daemon();
       if(ims == -1){
          fprintf(stderr, "serverMonitor: error while creating the daemon.\n");
          exit(0);
       }
    }else if(crMapReturnValue == 1){ //the mapping was alredy there
-      if(open_mapping(&(server->mapping), server->mapName, server->mapSize * sizeof(char)) == -1){
+      if(open_mapping(&(server.mapping), server.mapName, server.mapSize * sizeof(char)) == -1){
          fprintf(stderr, "serverMonitor: error while opening the mapping.\n");
-         syncmapping_release(server->mapLock);
-         syncmapping_closelock(server->mapLock);
+         syncmapping_release(server.mapLock);
+         syncmapping_closelock(server.mapLock);
          exit(0);
       }
-      char *pointer = get_mapping_pointer(server->mapping);
+      char *pointer = get_mapping_pointer(server.mapping);
       //start memory management
       char *firstBlock = NULL;
-      if(pmm_initialize_management(pointer, server->mapSize, (void **) &firstBlock) == -1){
+      if(pmm_initialize_management(pointer, server.mapSize, (void **) &firstBlock) == -1){
          fprintf(stderr, "serverMonitor: error while starting memory management.\n");
-         syncmapping_release(server->mapLock);
-         syncmapping_closelock(server->mapLock);
+         syncmapping_release(server.mapLock);
+         syncmapping_closelock(server.mapLock);
          exit(0);
       }
       //initialize the mapping structure
-      int ims = initialize_mapping_structure(firstBlock, &(server->structure),
-                server->timeout, (server->serverPaths)[0]);
+      int ims = initialize_mapping_structure(firstBlock, &(server.structure),
+                server.timeout, (server.serverPaths)[0]);
       if(ims == -1){
          fprintf(stderr, "serverMonitor: error while initializing mapping structure.\n");
-         syncmapping_release(server->mapLock);
-         syncmapping_closelock(server->mapLock);
+         syncmapping_release(server.mapLock);
+         syncmapping_closelock(server.mapLock);
          exit(0);
       } else if(ims == -2){
          fprintf(stderr, "serverMonitor: the specified directory no longer exists.\n");
-         syncmapping_release(server->mapLock);
-         syncmapping_closelock(server->mapLock);
+         syncmapping_release(server.mapLock);
+         syncmapping_closelock(server.mapLock);
          exit(0);
       }
-      server->ID = ims;
+      server.ID = ims;
    }else if(crMapReturnValue == -1){
       fprintf(stderr, "serverMonitor: error while creating the mapping.\n");
-      syncmapping_release(server->mapLock);
-      syncmapping_closelock(server->mapLock);
+      syncmapping_release(server.mapLock);
+      syncmapping_closelock(server.mapLock);
       exit(0);
    }
    //FINISH with the mapping
-   if(syncmapping_release(server->mapLock) == -1){
+   if(syncmapping_release(server.mapLock) == -1){
      fprintf(stderr, "Error while releasing the file lock.\n");
      exit(0);
    }
    //set the startup time
-   server->startUpTime = get_current_time();
-   if(server->startUpTime == -1){
+   server.startUpTime = get_current_time();
+   if(server.startUpTime == -1){
       fprintf(stderr, "serverMonitor: error while getting the current time.\n");
       exit(0);
    }

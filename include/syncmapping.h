@@ -19,7 +19,7 @@
   // Returns -1 in case of error, 0 otherwise
   //
   // ===========================================================================
-  int syncmapping_createlock(pSyncMapping *lock, char *lockname);
+  int syncmapping_createlock(pSyncMapping *lock);
 
   // ===========================================================================
   //

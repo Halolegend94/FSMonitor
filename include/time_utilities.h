@@ -5,10 +5,10 @@
 //
 // get_current_time
 // Description: get the current time (the internal representation depends on the platform)
-// Returns the current time as long long int, -1 in case of error
+// Returns the current time as long long int, 0 in case of error
 //
 // ==========================================================================
-long long get_current_time();
+unsigned long long get_current_time();
 
 // ==========================================================================
 //
@@ -17,4 +17,4 @@ long long get_current_time();
 // Returns the difference as long long int, -1 in case of error.
 //
 // ==========================================================================
-long long get_relative_time(long long fileModTime, long long serverStartUpTime);
+long long get_relative_time(unsigned long long fileModTime, unsigned long long serverStartUpTime);

@@ -9,7 +9,7 @@
 typedef struct _myFile {
 	char *name;
 	long long size;
-	long long lastWriteTimestamp;
+	unsigned long long lastWriteTimestamp;
 	char *perms;
 	int isDir;
 } myFile;

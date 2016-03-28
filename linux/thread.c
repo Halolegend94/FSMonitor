@@ -1,15 +1,17 @@
 #include <pthread.h>
 #include <time.h>
+#include "../include/thread.h"
+
 /*thread structure*/
 struct thread{
    pthread_t handler;
-}
+};
 
 // ===========================================================================
 // create_thread
 // ===========================================================================
-int create_thread(void *(*pFunction)(void*), void *arg, thread **thr){
-   *thr = malloc(sizeof(thread));
+int create_thread(void *(*pFunction)(void*), void *arg, struct thread **thr){
+   *thr = malloc(sizeof(struct thread));
    if(!(*thr)){
       fprintf(stderr, "create_thread: error while allocating memory.\n");
       return -1;
@@ -27,9 +29,5 @@ int create_thread(void *(*pFunction)(void*), void *arg, thread **thr){
 // ===========================================================================
 int thread_sleep(int seconds){
    struct timespec spec = {seconds, 0};
-	int ret = nanosleep(&spec, NULL);
-   if(ret == -1){
-      fprintf(stderr, "thread_sleep: sleep interrupted.\n");
-   }
-	return ret;
+   return nanosleep(&spec, NULL);
 }

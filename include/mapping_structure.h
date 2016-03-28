@@ -1,6 +1,5 @@
 #ifndef __MAPPINGSTRUCTURE__
 	#define __MAPPINGSTRUCTURE__
-
 	#include "notifications_bucket.h"
 	#include "filesystree.h"
 	#include "mem_management.h"
@@ -20,7 +19,7 @@
 		int refreshTime;   					//how much time needs to pass before another
 					    							//check is done by the deamon
 		int idCounter;    					//incremented by 1 each time a server registers. Used to generate server ID
-		unsigned long lastUpdate; 			//the last time the structure was updated
+		unsigned long long lastUpdate; 			//the last time the structure was updated
 	} mappingStructure;
 
 	/*function prototypes*/

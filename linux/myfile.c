@@ -43,9 +43,10 @@ int get_directory_content(char *dir, myFileList *fileList){
 	dirEntry = readdir(dpointer);
 	/*scan directory*/
 	while(dirEntry != NULL){
-		if(dirEntry->d_name[0] == '.'){
+		int nameLen = strlen(dirEntry->d_name);
+		if(dirEntry->d_name[0] == '.' || dirEntry->d_name[nameLen - 1] == '~'){
 			dirEntry = readdir(dpointer);
-			continue; //skip special dirs
+			continue; //skip special dirs, hidden and temp files
 		}
 		//we need the fullpath name
 		char *fullPath = concatenate_path(dir, dirEntry->d_name);
@@ -73,7 +74,6 @@ int get_directory_content(char *dir, myFileList *fileList){
 				return -1;
 			}
 		}
-		int nameLen = strlen(dirEntry->d_name);
 		fileList->list[fileList->count].name = (char *) malloc((nameLen + 1) * sizeof(char));
 		if(!fileList->list[fileList->count].name){
 			fprintf(stderr, "Error while allocating memory.\n");
@@ -90,7 +90,7 @@ int get_directory_content(char *dir, myFileList *fileList){
 			fileList->list[fileList->count].isDir = 0;
 		//set file size and modification time
 		fileList->list[fileList->count].size = fileData.st_size;
-		fileList->list[fileList->count].lastWriteTimestamp = fileData.st_mtime;
+		fileList->list[fileList->count].lastWriteTimestamp = (unsigned long long) fileData.st_mtime;
 		char *pstr = __get_perm_string(mode);
 		if(!pstr){
 			fprintf(stderr, "Error while retrieving the permissions string for \"%s\".\n", dirEntry->d_name);
