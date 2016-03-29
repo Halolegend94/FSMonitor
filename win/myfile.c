@@ -43,7 +43,7 @@ int get_directory_content(char *dir, myFileList *fileList) {
 	strcpy(path, dir);
 	strcat(path, "\\*");
 	//now we allocate a MAXFILE amount of space for fileList
-	fileList->list = (myFile *)malloc(MAXFILES * sizeof(myFile));
+	fileList->list = (myFile **)malloc(MAXFILES * sizeof(myFile *));
 	if (!fileList->list) {
 		fprintf(stderr, "Error while allocating memory.\n");
 		free(path);
@@ -61,7 +61,7 @@ int get_directory_content(char *dir, myFileList *fileList) {
 	do { //for each file in dir...
 		if (fileList->count >= currentCapacity) { //if the list is full, reallocate memory
 			currentCapacity += MAXFILESINC;
-			fileList->list = (myFile *) realloc(fileList->list, currentCapacity * sizeof(myFile));
+			fileList->list = (myFile **) realloc(fileList->list, currentCapacity * sizeof(myFile *));
 			if (!fileList->list) {
 				fprintf(stderr, "Error while reallocating memory.\n");
 				free(path);
@@ -69,8 +69,13 @@ int get_directory_content(char *dir, myFileList *fileList) {
 			}
 		}
 		type = __get_file_type(&findData); //we need to know if it's a dir or a reg file
-		if (type == T_OTHER) continue; //skip . and ..
-		fileList->list[fileList->count].isDir = type == T_DIR ? TRUE : FALSE;
+		if (type == T_OTHER) continue; //skip special files
+		myFile *file = malloc(sizeof(myFile));
+		if(!file){
+			fprintf(stderr, "get_directory_content: error while allocating memory.\n");
+			return -1;
+		}
+		file->isDir = type == T_DIR ? TRUE : FALSE;
 		/*if (type == T_DIR) //set the type
 			fileList->list[fileList->count].isDir = TRUE;
 		else
@@ -79,21 +84,19 @@ int get_directory_content(char *dir, myFileList *fileList) {
 		LARGE_INTEGER large;
 		large.LowPart = findData.ftLastWriteTime.dwLowDateTime;
 		large.HighPart = findData.ftLastWriteTime.dwHighDateTime;
-		fileList->list[fileList->count].lastWriteTimestamp = large.QuadPart;
+		file->lastWriteTimestamp = large.QuadPart;
 		//set the size
 		large.LowPart = findData.nFileSizeLow;
 		large.HighPart = findData.nFileSizeHigh;
-		fileList->list[fileList->count].size = large.QuadPart;
+		file->size = large.QuadPart;
 		//set the file name
 		int namelen = strlen(findData.cFileName);
-		fileList->list[fileList->count].name = (char *) malloc((namelen + 1) * sizeof(char));
-		if (!fileList->list[fileList->count].name) {
-			fprintf(stderr, "Error while allocating memory.\n");
-			free(path);
-			free(fileList->list);
+		file->name = (char *) malloc((namelen + 1) * sizeof(char));
+		if (!(file->name)) {
+			fprintf(stderr, "get_directory_content: error while allocating memory.\n");
 			return -1;
 		}
-		strcpy(fileList->list[fileList->count].name, findData.cFileName);
+		strcpy(file->name, findData.cFileName);
 		//find permissions
 		char *fullPath = concatenate_path(dir, findData.cFileName);
 		if(!fullPath){
@@ -102,7 +105,7 @@ int get_directory_content(char *dir, myFileList *fileList) {
 		}
 		int ret = 0; //return value
 		char *perms = __get_security_acls(fullPath, &ret);
-		if(ret == 1){
+		if(ret == 1){ //no security information obtained
 			//fprintf(stderr, "Error while getting information %s. Defaults are empty string.\n", findData.cFileName);
 			perms = malloc(sizeof(char));
 			if(!perms){
@@ -110,24 +113,18 @@ int get_directory_content(char *dir, myFileList *fileList) {
 				return -1;
 			}
 			perms[0] = '\0';
-		}else if(!perms){
+		}else if(!perms){ //error
 			fprintf(stderr, "Error while getting information %s. Terminating.\n", findData.cFileName);
-			free(path);
-			free(fullPath);
-			free(fileList->list);
-			free(fileList->list[fileList->count].name);
 			return -1;
 		}
 		free(fullPath);
-		fileList->list[fileList->count].perms = perms;
+		file->perms = perms;
+		fileList->list[fileList->count] = file;
 		fileList->count++;
 	} while (FindNextFile(searchHandle, &findData));
 	free(path);
 	if (!FindClose(searchHandle)) {
 		fprintf(stderr, "Error while closing the search handle.\n");
-		free(fileList->list);
-		free(fileList->list[fileList->count].name);
-		free(fileList->list[fileList->count].perms);
 		return -1;
 	}
 	return 0;
@@ -446,11 +443,6 @@ int is_directory(char *dir){
 // tokenize_path
 // ===========================================================================
 int tokenize_path(char *path, char ***tokenList, int *tokenListSize){
-	if(path == NULL){
-		fprintf(stderr, "tokenize_path: path parameter is null\n");
-		return -1;
-	}
-
 	if(MAX_TOKENS < 1 || MAX_TOKEN_LEN < 3){
 		fprintf(stderr, "tokenize_path: DEFINITIONS values not valid.\n");
 		return -1;
@@ -536,8 +528,8 @@ int tokenize_path(char *path, char ***tokenList, int *tokenListSize){
 int get_file_info(myFileList *fileList, char *filename, myFile **file){
 	int i;
 	for(i = 0; i < fileList->count; i++){
-		if(fname_compare(fileList->list[i].name, filename) == 0){
-			*file = &(fileList->list[i]);
+		if(fname_compare((fileList->list[i])->name, filename) == 0){
+			*file = fileList->list[i];
 			return 1;
 		}
 	}

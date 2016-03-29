@@ -1,6 +1,6 @@
 #include "../include/syncmapping.h"
 #include <windows.h>
-
+#include "utilities.h"
 /*this structure is used as a reference to the file used as mutex.*/
 struct syncMapping {
     HANDLE mutex;
@@ -41,6 +41,7 @@ int syncmapping_acquire(struct syncMapping *lock) {
 int syncmapping_release(struct syncMapping *lock) {
 	BOOL unlocked = ReleaseMutex(lock->mutex);
    if(unlocked == 0){
+      printf("%s\n", GetLastErrorAsString());
       fprintf(stderr, "syncmapping_release: error while releasing the mutex.\n");
       return -1;
    }

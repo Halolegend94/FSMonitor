@@ -24,7 +24,7 @@ char *__get_perm_string(mode_t mode);
 // ===========================================================================
 int get_directory_content(char *dir, myFileList *fileList){
 	/*allocate initial resources*/
-	fileList->list = (myFile *) malloc(MAXFILES * sizeof(myFile));
+	fileList->list = (myFile **) malloc(MAXFILES * sizeof(myFile *));
 	if(!fileList->list){
 		fprintf(stderr, "Error while allocating memory.\n");
 		return -1;
@@ -51,7 +51,7 @@ int get_directory_content(char *dir, myFileList *fileList){
 		//we need the fullpath name
 		char *fullPath = concatenate_path(dir, dirEntry->d_name);
 		if(!fullPath){
-			fprintf(stderr, "Error while getting the full path for %s\n", dirEntry->d_name);
+			fprintf(stderr, "get_directory_content: error while getting the full path for %s\n", dirEntry->d_name);
 			return -1;
 		}
 		struct stat fileData;
@@ -61,44 +61,48 @@ int get_directory_content(char *dir, myFileList *fileList){
 			/*perror("Error while opening the file");
 			fprintf(stderr, "Error while retrieving file \"%s\" information.\n", fullPath);*/
 			dirEntry = readdir(dpointer);
-			perror("errore");
 			free(fullPath);
 			continue;
+		}
+		myFile *file = malloc(sizeof(myFile));
+		if(!file){
+			fprintf(stderr, "%s\n","get_directory_content: error while allocating memory.\n");
+			return -1;
 		}
 		mode = fileData.st_mode;
 		if(fileList->count >= currentListCapacity){ //if we exceed the initial space, realloc it
 			currentListCapacity+= MAXFILES_INC;
-			fileList->list = (myFile *) realloc(fileList->list, currentListCapacity * sizeof(myFile));
+			fileList->list = (myFile **) realloc(fileList->list, currentListCapacity * sizeof(myFile *));
 			if(!fileList->list){
 				fprintf(stderr, "Error while reallocating memory.\n");
 				return -1;
 			}
 		}
-		fileList->list[fileList->count].name = (char *) malloc((nameLen + 1) * sizeof(char));
-		if(!fileList->list[fileList->count].name){
+
+		file->name = (char *) malloc((nameLen + 1) * sizeof(char));
+		if(!(file->name)){
 			fprintf(stderr, "Error while allocating memory.\n");
 			free(fileList->list);
 			return -1;
 		}
 		//set the file name
-		strcpy(fileList->list[fileList->count].name, dirEntry->d_name);
+		strcpy(file->name, dirEntry->d_name);
 
 		//set isDir
 		if(S_ISDIR(mode))
-			fileList->list[fileList->count].isDir = 1;
+			file->isDir = 1;
 		else
-			fileList->list[fileList->count].isDir = 0;
+			file->isDir = 0;
 		//set file size and modification time
-		fileList->list[fileList->count].size = fileData.st_size;
-		fileList->list[fileList->count].lastWriteTimestamp = (unsigned long long) fileData.st_mtime;
+		file->size = fileData.st_size;
+		file->lastWriteTimestamp = (unsigned long long) fileData.st_mtime;
 		char *pstr = __get_perm_string(mode);
 		if(!pstr){
 			fprintf(stderr, "Error while retrieving the permissions string for \"%s\".\n", dirEntry->d_name);
-			free(fileList->list[fileList->count].name);
-			free(fileList->list);
 			return -1;
 		}
-		fileList->list[fileList->count].perms = pstr;
+		file->perms = pstr;
+		fileList->list[fileList->count] = file;
 		fileList->count++;
 		free(fullPath);
 		//read next entry
@@ -322,8 +326,8 @@ int tokenize_path(char *path, char ***tokenList, int *tokenListSize){
 int get_file_info(myFileList *fileList, char *filename, myFile **file){
 	int i;
 	for(i = 0; i < fileList->count; i++){
-		if(fname_compare(fileList->list[i].name, filename) == 0){
-			*file = &(fileList->list[i]);
+		if(fname_compare((fileList->list[i])->name, filename) == 0){
+			*file = fileList->list[i];
 			return 1;
 		}
 	}

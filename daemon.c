@@ -23,21 +23,20 @@ int create_daemon(){
 void *do_work(void *arg){
    /*serverStructure *str = (serverStructure *) arg;*/
    int refreshTime = 0;
-
    //DO FOREVER
    while(1){
        syncmapping_acquire(server.mapLock);
        if(server.isActive == 0 || server.ID != (server.structure)->daemonServer){
+          printf("daemon: killing myself.\n");
            syncmapping_release(server.mapLock);
            break;
        }
-
        if(update(server.structure) == -1){
            fprintf(stderr, "daemon: error while updating the mapping. Terminate execution.\n");
            cs_terminate_server();
        }
 
-       refreshTime = (server.structure)->refreshTime;
+       refreshTime = (server.structure)->refreshTime - 1; 
        // print_mappingstructure_state(server.structure);
        syncmapping_release(server.mapLock);
        if(thread_sleep(refreshTime) == -1)break; //signal received

@@ -17,7 +17,7 @@ typedef struct _myFile {
 //a list of files. This struct is filled by get_directory_content
 typedef struct _myFileList {
 	int count;
-	myFile *list;
+	myFile **list;
 } myFileList;
 
 // ==========================================================================

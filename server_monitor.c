@@ -22,7 +22,7 @@ int main(int argc, char **argv){
    printf("Server (ID=%u) is active!\n", server.ID);
 
    thread_sleep(INITIAL_DELAY); //so serverMonitor and daemon will be active at different time windows
-   
+
    //**********************    MAIN LOOP   ********************************************
    mappingStructure *structure = server.structure; //mapping structure, for easier access
    while(1){
@@ -49,8 +49,8 @@ int main(int argc, char **argv){
             fprintf(stderr, "serverMonitor: error while getting the current time. Aborting execution.\n");
             cs_terminate_server();
          }
-         if(structure->daemonServer == -1 ||
-            get_relative_time(current_time, structure->lastUpdate) > (structure->refreshTime * DELAY_TOLLERANCE_FACTOR)){
+         if(structure->daemonServer == -1 || (server.ID != structure->daemonServer &&
+            get_relative_time(current_time, structure->lastUpdate) > (structure->refreshTime * DELAY_TOLLERANCE_FACTOR))){
             printf("Creating a new daemon..\n");
             if(create_daemon() == -1){
                fprintf(stderr, "serverMonitor: error while creating the daemon. Aborting execution..\n");
@@ -143,6 +143,10 @@ void load_settings(){
    free(t1);
    if(server.timeout == 0){
       fprintf(stderr, "serverMonitor: timeout value not valid.\n");
+      exit(0);
+   }
+   if(server.timeout < 3){
+      fprintf(stderr, "serverMonitor: refresh time must be greater than 2 seconds.\n");
       exit(0);
    }
    server.mapName = get_setting_by_name("mapName", &loadedSettings);

@@ -7,9 +7,11 @@ char *get_type_string(notificationType type);
 // get_string_representation
 // ===========================================================================
 char *get_string_representation(receivedNotification *not, long long serverStartupTime){
+
    long long modTime = get_relative_time(not->modTimestamp, serverStartupTime);
    if(modTime == -1){
        fprintf(stderr, "get_string_representation: error while getting the relative time.\n");
+       printf("debug; %s %lli %s %lli", not->path, not->size, not->perms, modTime);
        return NULL;
    }
    int sizeLen = not->size < 10 ? 1 : ceil(log10(not->size));

@@ -258,13 +258,13 @@ int fst_add_children(fstNode *father, myFileList *fList, fstNode ***node, int *c
 	int j; //counter
 	for(j = 0; j < fList->count; j++){
 
-		myFile *file = &(fList->list[j]); //file
+		myFile *file = fList->list[j]; //file
 		/*we need to check if the file is already present among the children*/
 		int i;
 		int present = 0;
 		for(i = 0; i < numPreviousChildren; i++){
 			if(fname_compare(pmm_offset_to_pointer(nodeList[i]->off_name),
-					fList->list[j].name) == 0){
+					fList->list[j]->name) == 0){
 				present = 1;
 				break;
 			}

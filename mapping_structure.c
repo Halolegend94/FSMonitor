@@ -473,16 +473,16 @@ int __scan(fstNode *currentNode, char *path, mappingStructure *str, int monitore
 		/*for each file in the direcory*/
 		for(i = 0; i < fList.count; i++){
 			int ffound = 0; //used to tell if it is already present in the fs-tree
-			char *fullFPath = concatenate_path(path, fList.list[i].name);
+			char *fullFPath = concatenate_path(path, fList.list[i]->name);
 			if(!fullFPath){
 				fprintf(stderr, "scan: error while concantenating the path for %s\n",
-									fList.list[i].name);
+									fList.list[i]->name);
 				return -1;
 			}
 			for(j = 0; j < nListSize; j++){
 				/*if there is a match..*/
 				if(fname_compare(pmm_offset_to_pointer(nList[j]->off_name),
-						fList.list[i].name) == 0 && fList.list[i].isDir  == nList[j]->isDir){
+						fList.list[i]->name) == 0 && fList.list[i]->isDir  == nList[j]->isDir){
 
 					checkVector[j] = 1; //this means that it has not been deleted
 					ffound = 1;
@@ -491,50 +491,50 @@ int __scan(fstNode *currentNode, char *path, mappingStructure *str, int monitore
 					int ck_size = 0;
 					int cambio_con = 0;
 					//size
-					if(nList[j]->size != fList.list[i].size) ck_size = 1;
+					if(nList[j]->size != fList.list[i]->size) ck_size = 1;
 					//perms
 					if(fname_compare(pmm_offset_to_pointer(nList[j]->off_perms),
-									fList.list[i].perms) != 0) ck_perms = 1;
+									fList.list[i]->perms) != 0) ck_perms = 1;
 
 					//cambiocon
-					if(nList[j]->lastWriteTimestamp != fList.list[i].lastWriteTimestamp &&
-						nList[j]->size == fList.list[i].size && !nList[j]->isDir)
+					if(nList[j]->lastWriteTimestamp != fList.list[i]->lastWriteTimestamp &&
+						nList[j]->size == fList.list[i]->size && !nList[j]->isDir)
 							cambio_con = 1; //file changed but same size. (not much sense for folders)
 
 					//update info
-				  	nList[j]->size = fList.list[i].size;
-					nList[j]->lastWriteTimestamp = fList.list[i].lastWriteTimestamp;
+				  	nList[j]->size = fList.list[i]->size;
+					nList[j]->lastWriteTimestamp = fList.list[i]->lastWriteTimestamp;
 
 					if(ck_perms == 1){
 						pmm_free(pmm_offset_to_pointer(nList[j]->off_perms));
-						int newPermsLen = strlen(fList.list[i].perms) + 1;
+						int newPermsLen = strlen(fList.list[i]->perms) + 1;
 						char *np = pmm_malloc(sizeof(char) * newPermsLen);
 						if(!np){
 							fprintf(stderr, "scan: error while allocating memory.\n");
 							return -1;
 						}
-						strcpy(np, fList.list[i].perms);
+						strcpy(np, fList.list[i]->perms);
 						nList[j]->off_perms = pmm_pointer_to_offset(np);
 						/*send notification*/
 						if(nb_push_notification(startBucket, np, fullFPath,
-							fList.list[i].size, mtime,
-								fList.list[i].isDir, perms) == -1){
-							fprintf(stderr, "scan: error while pushing notification for %s.\n", fList.list[i].name);
+							fList.list[i]->size, mtime,
+								fList.list[i]->isDir, perms) == -1){
+							fprintf(stderr, "scan: error while pushing notification for %s.\n", fList.list[i]->name);
 							return -1;
 						}
 					}
 					if(ck_size == 1){
-						if(nb_push_notification(startBucket, fList.list[i].perms, fullFPath,
-							fList.list[i].size, fList.list[i].lastWriteTimestamp,
-								fList.list[i].isDir, dimension) == -1){
-							fprintf(stderr, "scan: error while pushing notification for %s.\n", fList.list[i].name);
+						if(nb_push_notification(startBucket, fList.list[i]->perms, fullFPath,
+							fList.list[i]->size, fList.list[i]->lastWriteTimestamp,
+								fList.list[i]->isDir, dimension) == -1){
+							fprintf(stderr, "scan: error while pushing notification for %s.\n", fList.list[i]->name);
 							return -1;
 						}
 					}else if(cambio_con == 1){
-						if(nb_push_notification(startBucket, fList.list[i].perms, fullFPath,
-							fList.list[i].size, fList.list[i].lastWriteTimestamp,
-								fList.list[i].isDir, cambiocon) == -1){
-							fprintf(stderr, "scan: error while pushing notification for %s.\n", fList.list[i].name);
+						if(nb_push_notification(startBucket, fList.list[i]->perms, fullFPath,
+							fList.list[i]->size, fList.list[i]->lastWriteTimestamp,
+								fList.list[i]->isDir, cambiocon) == -1){
+							fprintf(stderr, "scan: error while pushing notification for %s.\n", fList.list[i]->name);
 							return -1;
 						}
 					}
@@ -544,21 +544,22 @@ int __scan(fstNode *currentNode, char *path, mappingStructure *str, int monitore
 
 			if(!ffound){ //this means that its a new file
 				fstNode *newNode;
-				if(fst_add_child(currentNode, fList.list + i, &newNode) == -1){
+				if(fst_add_child(currentNode, fList.list[i], &newNode) == -1){
 					fprintf(stderr, "__first_scan: error while adding a new node.\n");
 					return -1;
 				}
-				if(nb_push_notification(startBucket, fList.list[i].perms, fullFPath,
-					fList.list[i].size, fList.list[i].lastWriteTimestamp,
-						fList.list[i].isDir, creation) == -1){
+				if(nb_push_notification(startBucket, fList.list[i]->perms, fullFPath,
+					fList.list[i]->size, mtime,
+						fList.list[i]->isDir, creation) == -1){
 					fprintf(stderr, "scan: error while pushing notification for %s.\n",
-							fList.list[i].name);
+							fList.list[i]->name);
 					return -1;
 				}
 			}
 			//free memory
-			free(fList.list[i].name);
-			free(fList.list[i].perms);
+			free(fList.list[i]->name);
+			free(fList.list[i]->perms);
+			free(fList.list[i]);
 			free(fullFPath);
 		}
 		free(fList.list);

@@ -24,15 +24,21 @@ void cs_terminate_server(){
    }
    server.isActive = 0;
    if((server.structure)->serverCounter == 0){ //if it is the last server, delete the mapping
-       delete_mapping(server.mapping);
+       if(delete_mapping(server.mapping) == -1)
+         fprintf(stderr, "Error while unmapping the file.\n");
        if(delete_file(server.mapName) == -1)
         fprintf(stderr, "Error while deleting the mapping file. Delete it manually.\n");
-       syncmapping_release(server.mapLock);
-       syncmapping_deletelock(server.mapLock);
+       if(syncmapping_release(server.mapLock) == -1)
+         fprintf(stderr, "Error while releasing the lock.\n");
+       if(syncmapping_deletelock(server.mapLock) == -1)
+         fprintf(stderr, "Error while deleting the lock.\n");
    }else{
-       delete_mapping(server.mapping);
-       syncmapping_release(server.mapLock);
-       syncmapping_closelock(server.mapLock);
+       if(delete_mapping(server.mapping) == -1)
+         fprintf(stderr, "Error while unmapping the file.\n");
+       if(syncmapping_release(server.mapLock) == -1)
+         fprintf(stderr, "Error while releasing the lock.\n");
+       if(syncmapping_closelock(server.mapLock) == -1)
+         fprintf(stderr, "Error while closing the lock handler.\n");
    }
    printf("..done\n");
    exit(0);
