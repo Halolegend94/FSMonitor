@@ -1,5 +1,8 @@
 #include "include/linked_list.h"
 
+// ==========================================================================
+// ll_create
+// ==========================================================================
 linkedList ll_create(){
 	linkedList l;
 	l.idCounter = 0;
@@ -9,13 +12,16 @@ linkedList ll_create(){
 	return l;
 }
 
-int ll_add_element(linkedList *list, void *pElement){
+// ==========================================================================
+// ll_add_item
+// ==========================================================================
+int ll_add_item(linkedList *list, void *pItem){
 	linkedItem *el = malloc(sizeof(linkedItem));
 	if(!el){
-		fprintf(stderr, "ll_add_element: error while allocating memory.\n");
+		fprintf(stderr, "ll_add_item: error while allocating memory.\n");
 		return -1;
 	}
-	el->item = pElement;
+	el->item = pItem;
 	el->next = NULL;
 	int len = list->count++;
 	el->id = list->idCounter++;
@@ -29,7 +35,10 @@ int ll_add_element(linkedList *list, void *pElement){
 	return 0;
 }
 
-int ll_remove_element(linkedList *list, linkedItem *item){
+// ==========================================================================
+// ll_remove_item
+// ==========================================================================
+int ll_remove_item(linkedList *list, linkedItem *item){
 	linkedItem *current = list->first;
 	if(current == NULL){
 		fprintf(stderr, "ll_remove_elment: the list is empty.\n");
@@ -40,7 +49,7 @@ int ll_remove_element(linkedList *list, linkedItem *item){
 		if(current == NULL) break;
 	}
 	if(current == NULL){
-		fprintf(stderr, "ll_remove_element: element not found.\n");
+		fprintf(stderr, "ll_remove_item: item not found.\n");
 		return-1;
 	}
 
@@ -62,21 +71,20 @@ int ll_remove_element(linkedList *list, linkedItem *item){
 	return 0;
 }
 
+// ==========================================================================
+// ll_create_iterator
+// ==========================================================================
 linkedListIterator ll_create_iterator(linkedList *list){
 	linkedListIterator i;
 	i.current = list->first;
 	return i;
 }
-
+// ==========================================================================
+// ll_iter_next
+// ==========================================================================
 void *ll_iter_next(linkedListIterator *it){
-	if(it->current == NULL) NULL;
+	if(it->current == NULL) return NULL;
 	void *val = (it->current)->item;
 	it->current = (it->current)->next;
 	return val;
-}
-
-void ll_print_state(linkedList *l){
-	printf("Linked list info.\nTot elements: %d.\n", l->count);
-	linkedItem current
-
 }

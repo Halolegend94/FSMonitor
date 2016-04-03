@@ -41,7 +41,7 @@ serverSocket create_server_socket(char *port, int maxConnections, int type){
    }
 
    /*get the local ip address*/
-   ADDRINFO Hints, *AddrInfo, *it;
+   struct addrinfo Hints, *AddrInfo, *it;
    memset(&Hints, 0, sizeof (Hints));
    Hints.ai_family = AF_UNSPEC;
    Hints.ai_socktype = type;
@@ -108,8 +108,8 @@ struct _communicationSocket *accept_connection(struct _serverSocket *srv, struct
       return NULL;
    }
    struct sockaddr_storage from;
-   int len;
-   com->sock = accept(srv->sock, (struct sockaddr *) &from, &len);
+   int len = sizeof(from);
+   com->sock = accept(srv->sock, (struct sockaddr*) &from, &len);
    if(com->sock == ERROR_CODE){
       fprintf(stderr, "accept_connection: error while accepting a connection.\n");
       return NULL;
@@ -123,7 +123,8 @@ struct _communicationSocket *accept_connection(struct _serverSocket *srv, struct
       fprintf(stderr, "accept_connection: error while allocating memory.\n");
       return NULL;
    }
-   if(getnameinfo((struct sockaddr *) &((*clt)->clientAddress), (*clt)->clientLen, hostName, buffSize, NULL, 0, NI_NUMERICHOST) != 0){
+   if(getnameinfo((struct sockaddr *) &((*clt)->clientAddress), (*clt)->clientLen, hostName,
+      buffSize, NULL, 0, NI_NUMERICHOST) != 0){
       fprintf(stderr, "accept_connection: error while getting the string representation of the client address.\n");
       return NULL;
    }
@@ -146,7 +147,7 @@ struct _communicationSocket *create_connection(char *host, char *port, int type)
 
     memset(&Hints, 0, sizeof (Hints));
     Hints.ai_family = PF_UNSPEC;
-    Hints.ai_socktype = type == 0 ? SOCK_STREAM : SOCK_DGRAM;
+    Hints.ai_socktype = type;
     int retVal = getaddrinfo(host, port, &Hints, &AddrInfo);
     if(retVal != 0){
         fprintf(stderr, "create_connection: error while retrieving the address for the host.\n");
@@ -159,22 +160,43 @@ struct _communicationSocket *create_connection(char *host, char *port, int type)
       fprintf(stderr, "create_connection: error while creating the socket.\n");
       return NULL;
    }
-   //
-   // Notice that nothing in this code is specific to whether we
-   // are using UDP or TCP.
-   //
-   // When connect() is called on a datagram socket, it does not
-   // actually establish the connection as a stream (TCP) socket
-   // would. Instead, TCP/IP establishes the remote half of the
-   // (LocalIPAddress, LocalPort, RemoteIP, RemotePort) mapping.
-   // This enables us to use send() and recv() on datagram sockets,
-   // instead of recvfrom() and sendto().
-   //
 
-   if(connect(cm->sock, AddrInfo->ai_addr, (int) AddrInfo->ai_addrlen) == -1){
+   if(connect(cm->sock, AddrInfo->ai_addr, AddrInfo->ai_addrlen) == -1){
       fprintf(stderr, "create_connection: error while connecting to the host.\n");
       return NULL;
    }
    freeaddrinfo(AddrInfo);
    return cm;
+}
+
+// ==========================================================================
+// send_data
+// ==========================================================================
+int send_data(communicationSocket sock, char *buffer, int buffSize){
+   int totBytesSent = 0;
+   while(totBytesSent < buffSize){
+      int ret = send(sock->sock, buffer + totBytesSent, buffSize - totBytesSent, 0);
+      if(ret == -1){
+         fprintf(stderr, "send_data: error while sending data through the socket.\n");
+         return -1;
+      }
+      totBytesSent += ret;
+   }
+   return 0;
+}
+
+// ==========================================================================
+// receive_data
+// ==========================================================================
+int receive_data(communicationSocket sock, char *buffer, int buffSize){
+   int totBytesReceived = 0;
+   while(totBytesReceived < buffSize){
+      int ret = recv(sock->sock, buffer + totBytesReceived, buffSize - totBytesReceived, 0);
+      if(ret == -1){
+         fprintf(stderr, "receive_data: error while reading data through the socket.\n");
+         return -1;
+      }
+      totBytesReceived += ret;
+   }
+   return 0;
 }
