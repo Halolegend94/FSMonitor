@@ -62,7 +62,7 @@ int syncmapping_release(struct syncMapping *lock){
 // ===========================================================================
 int syncmapping_closelock(struct syncMapping *lock){
    if(sem_close(lock->sem) == -1){
-      fprintf(stderr, "Error while closing the semaphor.\n");
+      fprintf(stderr, "Error while closing the semaphore.\n");
       return -1;
    }
    free(lock);
@@ -74,11 +74,11 @@ int syncmapping_closelock(struct syncMapping *lock){
 // ===========================================================================
 int syncmapping_deletelock(struct syncMapping *lock){
    if(sem_close(lock->sem) == -1){
-      fprintf(stderr, "Error while closing the semaphor.\n");
+      fprintf(stderr, "Error while closing the semaphore.\n");
       return -1;
    }
    if(sem_unlink("/syncmap") == -1){
-      fprintf(stderr, "Error while deleting the semaphor.\n");
+      fprintf(stderr, "Error while deleting the semaphore.\n");
       return -1;
    }
    free(lock);

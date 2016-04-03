@@ -1,6 +1,6 @@
 #include "include/networking.h"
 
-#define  REPRESENTATION_LEN 40
+#define REPRESENTATION_LEN 40
 #define DEFAULT_PROTOCOL 0
 
 // ==========================================================================
@@ -32,13 +32,9 @@ void free_sockets_library(){
 // ==========================================================================
 // create_server_socket
 // ==========================================================================
-serverSocket create_server_socket(char *port, int maxConnections, int type){
+int create_server_socket(char *port, int maxConnections, int type){
 
-   struct _serverSocket *srv = malloc(sizeof(struct _serverSocket));
-   if(!srv){
-      fprintf(stderr, "create_server_socket: error while allocating memory.\n");
-      return NULL;
-   }
+   int sock; //will contain the socket FD
 
    /*get the local ip address*/
    struct addrinfo Hints, *AddrInfo, *it;
@@ -53,66 +49,66 @@ serverSocket create_server_socket(char *port, int maxConnections, int type){
 
    if(getaddrinfo(NULL, port, &Hints, &AddrInfo) != 0){
       fprintf(stderr, "create_server_socket: error while getting the local ip address.\n");
-      return NULL;
+      return -1;
    }
 
    /*create the socket*/
-   srv->sock = socket(AF_INET6, type, DEFAULT_PROTOCOL);
+   sock = socket(AF_INET6, type, DEFAULT_PROTOCOL);
 
-   if(srv->sock == ERROR_CODE){
+   if(sock == ERROR_CODE){
       fprintf(stderr, "create_server_socket: error while creating the server socket.\n");
-      return NULL;
+      return -1;
    }
 
    /*set the dual stack mode*/
    int val = 0;
-   if(setsockopt(srv->sock, IPPROTO_IPV6, IPV6_V6ONLY,(char *) &val, sizeof(int)) == -1){
+   if(setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY,(char *) &val, sizeof(int)) == -1){
       fprintf(stderr, "create_server_socket: error while setting the dual stack mode.\n");
-      return NULL;
+      return -1;
    }
    /*bind the socket*/
    int bindSucceded = 0;
    for (it = AddrInfo; it != NULL; it = it->ai_next) {
-       if (bind(srv->sock, it->ai_addr, it->ai_addrlen) == 0){
+       if (bind(sock, it->ai_addr, it->ai_addrlen) == 0){
             bindSucceded = 1;
             break;
        }
    }
    if(!bindSucceded){
        fprintf(stderr, "create_server_socket: error binding the socket.\n");
-       return NULL;
+       closesocket(sock);
+       return -1;
    }
 
    freeaddrinfo(AddrInfo);
-   /*listening state*/
-   if(listen(srv->sock, maxConnections) == -1) {
-      fprintf(stderr, "create_server_socket: error while putting the socket in listening state.\n");
-      closesocket(srv->sock);
-      return NULL;
+
+   /*listening state if SOCK_STREAM*/
+   if(type == SOCK_STREAM){
+      if(listen(sock, maxConnections) == -1) {
+         fprintf(stderr, "create_server_socket: error while putting the socket in listening state.\n");
+         closesocket(sock);
+         return -1;
+      }
    }
-   return srv;
+   return sock;
 }
 
 // ==========================================================================
 // accept_connection
 // ==========================================================================
-struct _communicationSocket *accept_connection(struct _serverSocket *srv, struct _clientData **clt){
+int accept_connection(int srv, struct _clientData **clt){
    *clt = malloc(sizeof(struct _clientData));
    if(!(*clt)){
       fprintf(stderr, "accept_connection: error while allocating memory.\n");
-      return NULL;
+      return -1;
    }
-   struct _communicationSocket *com = malloc(sizeof(struct _communicationSocket));
-   if(!com){
-      fprintf(stderr, "accept_connection: error while allocating memory.\n");
-      return NULL;
-   }
+   int sock;
    struct sockaddr_storage from;
    int len = sizeof(from);
-   com->sock = accept(srv->sock, (struct sockaddr*) &from, &len);
-   if(com->sock == ERROR_CODE){
+   sock = accept(srv, (struct sockaddr*) &from, &len);
+   if(sock == ERROR_CODE){
       fprintf(stderr, "accept_connection: error while accepting a connection.\n");
-      return NULL;
+      return -1;
    }
    (*clt)->clientAddress = from;
    (*clt)->clientLen = len;
@@ -121,28 +117,22 @@ struct _communicationSocket *accept_connection(struct _serverSocket *srv, struct
    char *hostName = malloc(buffSize);
    if(!hostName){
       fprintf(stderr, "accept_connection: error while allocating memory.\n");
-      return NULL;
+      return -1;
    }
    if(getnameinfo((struct sockaddr *) &((*clt)->clientAddress), (*clt)->clientLen, hostName,
       buffSize, NULL, 0, NI_NUMERICHOST) != 0){
       fprintf(stderr, "accept_connection: error while getting the string representation of the client address.\n");
-      return NULL;
+      return -1;
    }
    (*clt)->hostName = hostName;
-   return com;
+   return sock;
 }
 
 // ==========================================================================
 // create_connection
 // ==========================================================================
-struct _communicationSocket *create_connection(char *host, char *port, int type){
-
-   struct _communicationSocket *cm = malloc(sizeof(struct _communicationSocket));
-   if(!cm){
-      fprintf(stderr, "create_connection: error while allocating memory.\n");
-      return NULL;
-   }
-
+int create_connection(char *host, char *port, int type){
+   int sock;
    struct addrinfo Hints, *AddrInfo;
 
     memset(&Hints, 0, sizeof (Hints));
@@ -151,31 +141,31 @@ struct _communicationSocket *create_connection(char *host, char *port, int type)
     int retVal = getaddrinfo(host, port, &Hints, &AddrInfo);
     if(retVal != 0){
         fprintf(stderr, "create_connection: error while retrieving the address for the host.\n");
-        return NULL;
+        return -1;
     }
 
-    cm->sock = socket(AddrInfo->ai_family, AddrInfo->ai_socktype, AddrInfo->ai_protocol);
+    sock = socket(AddrInfo->ai_family, AddrInfo->ai_socktype, AddrInfo->ai_protocol);
 
-   if(cm->sock == ERROR_CODE){
+   if(sock== ERROR_CODE){
       fprintf(stderr, "create_connection: error while creating the socket.\n");
-      return NULL;
+      return -1;
    }
 
-   if(connect(cm->sock, AddrInfo->ai_addr, AddrInfo->ai_addrlen) == -1){
+   if(connect(sock, AddrInfo->ai_addr, AddrInfo->ai_addrlen) == -1){
       fprintf(stderr, "create_connection: error while connecting to the host.\n");
-      return NULL;
+      return -1;
    }
    freeaddrinfo(AddrInfo);
-   return cm;
+   return sock;
 }
 
 // ==========================================================================
 // send_data
 // ==========================================================================
-int send_data(communicationSocket sock, char *buffer, int buffSize){
+int send_data(int sock, char *buffer, int buffSize){
    int totBytesSent = 0;
    while(totBytesSent < buffSize){
-      int ret = send(sock->sock, buffer + totBytesSent, buffSize - totBytesSent, 0);
+      int ret = send(sock, buffer + totBytesSent, buffSize - totBytesSent, 0);
       if(ret == -1){
          fprintf(stderr, "send_data: error while sending data through the socket.\n");
          return -1;
@@ -188,10 +178,10 @@ int send_data(communicationSocket sock, char *buffer, int buffSize){
 // ==========================================================================
 // receive_data
 // ==========================================================================
-int receive_data(communicationSocket sock, char *buffer, int buffSize){
+int receive_data(int sock, char *buffer, int buffSize){
    int totBytesReceived = 0;
    while(totBytesReceived < buffSize){
-      int ret = recv(sock->sock, buffer + totBytesReceived, buffSize - totBytesReceived, 0);
+      int ret = recv(sock, buffer + totBytesReceived, buffSize - totBytesReceived, 0);
       if(ret == -1){
          fprintf(stderr, "receive_data: error while reading data through the socket.\n");
          return -1;

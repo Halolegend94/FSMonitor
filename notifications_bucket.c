@@ -217,8 +217,7 @@ int nb_push_notification(notificationsBucket *start, char *perms, char *path,
 // NOTE: list will contain a pointer to a memory area in the process memory
 // and not in the mapping.
 // ===========================================================================
-int nb_read_notifications(notificationsBucket *start, receivedNotification **list,
-    int *count,  int serverID){
+int nb_read_notifications(notificationsBucket *start, receivedNotification ***list, int *count,  int serverID){
       *count = 0;
       *list = NULL;
       int currentCapacity = MIN_NUMBER;
@@ -226,7 +225,7 @@ int nb_read_notifications(notificationsBucket *start, receivedNotification **lis
       do{
          if(current->serverID == serverID && current->off_list != 0){ //we have found a bucket to read
             if(*list == NULL){
-               *list = malloc(sizeof(notification) * currentCapacity);
+               *list = malloc(sizeof(notification *) * currentCapacity);
                if(!(*list)){
                   fprintf(stderr, "nb_read_notifications: error while allocating memory.\n");
                   return -1;
@@ -239,14 +238,20 @@ int nb_read_notifications(notificationsBucket *start, receivedNotification **lis
             do{
                if((*count) >= currentCapacity){ //check if there is enough space
                   currentCapacity += NUM_INCREMENT;
-                  *list = realloc(*list, currentCapacity * sizeof(notification));
+                  *list = realloc(*list, currentCapacity * sizeof(notification *));
                   if(!(*list)){
                      fprintf(stderr, "nb_read_notifications: error while reallocating memory.\n");
                      return -1;
                   }
                }
-               (*list)[*count].size = currentNot->size;
-               (*list)[*count].modTimestamp = currentNot->modTimestamp;
+               receivedNotification *localNot = malloc(sizeof(notification));
+               if(!localNot){
+                  fprintf(stderr, "nb_read_notifications: error while allocating memory.\n");
+                  return -1;
+               }
+               (*list)[*count] = localNot;
+               localNot->size = currentNot->size;
+               localNot->modTimestamp = currentNot->modTimestamp;
                char *mPath = pmm_offset_to_pointer(currentNot->off_path);
                char *mPerms = pmm_offset_to_pointer(currentNot->off_perms);
                char *tpath = malloc(sizeof(char) * (strlen(mPath) + 1));
@@ -255,21 +260,19 @@ int nb_read_notifications(notificationsBucket *start, receivedNotification **lis
                   return -1;
                }
                strcpy(tpath, mPath);
-               (*list)[*count].path = tpath;
+               localNot->path = tpath;
                char *tperms = malloc(sizeof(char) * (strlen(mPerms) + 1));
                if(!tperms){
                   fprintf(stderr, "%s\n", "nb_read_notifications: error while allocating memory.");
                   return -1;
                }
                strcpy(tperms, mPerms);
-               (*list)[*count].perms = tperms;
-               (*list)[*count].type = currentNot->type;
+               localNot->perms = tperms;
+               localNot->type = currentNot->type;
                *count = *count + 1;
-
                //delete the notification from the linked list
                pmm_free(mPath);
                pmm_free(mPerms);
-
                //go to the next notification, if exists
                if(currentNot->off_next != 0){
                   notification *prev = currentNot;
@@ -290,17 +293,61 @@ int nb_read_notifications(notificationsBucket *start, receivedNotification **lis
 // ===========================================================================
 // nb_exists_bucket
 // ===========================================================================
- int nb_exists_bucket(notificationsBucket *start, int serverID, char *path){
- 	notificationsBucket *current = start;
- 	do{
-         if(current->serverID == serverID && strcmp(pmm_offset_to_pointer(current->off_path), path) == 0){
+int nb_exists_bucket(notificationsBucket *start, int serverID, char *path, notificationsBucket **buck){
+   /*build the internal representation of the path*/
+   char *tpath = concatenate_path(path, "");
+   if(!tpath){
+     fprintf(stderr, "nb_exists_bucket: error while concatenating a path.\n");
+     return ERROR;
+   }
+   notificationsBucket *current = start;
+	do{
+      char *mpath = pmm_offset_to_pointer(current->off_path);
+      if(current->serverID == serverID){
+         if(fname_compare(mpath, tpath) == 0){
          	//we have found the bucket
+            *buck = NULL;
+            free(tpath);
          	return 1;
+         }else if(is_prefix(tpath, mpath)){ //we already monitor it
+            *buck = NULL;
+            free(tpath);
+            return 1;
+
+         }else if(is_prefix(mpath, tpath)){ // we already monitor a subfolder
+            *buck = current;
+            free(tpath);
+            return 1;
          }
-         if(current->off_next == 0) return 0;
-         current = pmm_offset_to_pointer(current->off_next);
-      }while(1);
- }
+      }
+      if(current->off_next == 0) {
+         free(tpath);
+         return 0;
+      }
+      current = pmm_offset_to_pointer(current->off_next);
+   }while(1);
+}
+
+// ===========================================================================
+// nb_update_bucket_path
+// ===========================================================================
+int nb_update_bucket_path(notificationsBucket *bucket, char *path){
+/*build the internal representation of the path*/
+char *tpath = concatenate_path(path, "");
+if(!tpath){
+   fprintf(stderr, "nb_update_bucket_path: error while concatenating a path.\n");
+   return ERROR;
+}
+char *mapPath = pmm_malloc(sizeof(char) * (strlen(tpath) + 1));
+if(!mapPath){
+   fprintf(stderr, "nb_update_bucket_path: error while allocating memory.\n");
+   return ERROR;
+}
+strcpy(mapPath, tpath);
+free(tpath);
+bucket->off_path = pmm_pointer_to_offset(mapPath);
+return 0;
+}
 
 // ===========================================================================
 // nb_print_notification_buckets [DEBUG]

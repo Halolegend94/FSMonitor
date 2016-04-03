@@ -60,7 +60,7 @@ int main(int argc, char **argv){
          }
 
          //Now we can get notifications
-         receivedNotification *notificationsList;
+         receivedNotification **notificationsList;
          int count;
          if(get_notifications(server.structure, server.ID, &notificationsList, &count) == -1){
             fprintf(stderr, "serverMonitor: error while getting the notifications list. Aborting execution..\n");
@@ -69,7 +69,7 @@ int main(int argc, char **argv){
          //send notifications to clients
          int i;
          for(i = 0; i < count; i++){
-            printf("%s\n", get_string_representation(&(notificationsList[i]), server.startUpTime));
+            printf("%s\n", get_string_representation(notificationsList[i], server.startUpTime));
          }
          syncmapping_release(server.mapLock);
      }

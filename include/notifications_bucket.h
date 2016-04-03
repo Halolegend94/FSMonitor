@@ -8,6 +8,8 @@
    #include <stdlib.h>
    #include <string.h>
 
+   #define ERROR -1
+
    /*the following structure defines a linked list of notifications to be used inside the
    file mapping*/
    typedef struct _notification{
@@ -102,20 +104,37 @@
    // Returns 0 in case of success, -1 otherwise
    //
    // ===========================================================================
-   int nb_read_notifications(notificationsBucket *start, receivedNotification **list, int *count, int serverID);
+   int nb_read_notifications(notificationsBucket *start, receivedNotification ***list, int *count, int serverID);
 
    // ===========================================================================
    //
    // nb_exists_bucket
-   // Description: return the bucket that has the given serverID and a path
+   // Description: this function is used to tells if the server already monitors the path (there is a
+   // bucket whose path is a prefix of the given path) or if the server monitors a path that is contained
+   // in the given path.
    // Params:
    //    -  start: the first bucket of the linked list
    //    -  serverID: the ID of the server
    //    -  path: the path string
-   // Returns 1 if true, 0 if false
+   //    -  buck: a pointer where will be stored a pointer to the bucket whose associated path must be modified
+   // Returns 1 and sets buck to NULL if the server already monitors the path, 1 if the server already monitors
+   // a subfolder of the given directory and sets buck to point at the bucket of that subfolder. Returns 0
+   // and sets buck to NULL if the server does not already monitor the path.
    //
    // ===========================================================================
-   int nb_exists_bucket(notificationsBucket *start, int serverID, char *path);
+   int nb_exists_bucket(notificationsBucket *start, int serverID, char *path, notificationsBucket **buck);
+
+   // ===========================================================================
+   //
+   // nb_update_bucket_path
+   // Description: updates the path associated with a bucket
+   // Params:
+   //    -  bucket: a pointer to a bucket
+   //    -  path: the new path to be associated with the bucket
+   // Returns 0 in case of success, -1 otherwise
+   //
+   // ===========================================================================
+   int nb_update_bucket_path(notificationsBucket *bucket, char *path);
 
    // ===========================================================================
    //

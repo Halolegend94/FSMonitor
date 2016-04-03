@@ -21,7 +21,13 @@ typedef struct _myFileList {
 } myFileList;
 
 // ==========================================================================
+//
 // is_prefix
+// Description: tells if b is a prefix of a
+// Params:
+// 	-	a, b two null-terminated strings
+// Returns 1 if b is a prefix of a, 0 otherwise
+//
 // ==========================================================================
 int is_prefix(char *a, char *b);
 
@@ -30,7 +36,8 @@ int is_prefix(char *a, char *b);
 // fname_compare
 // Description: this functions tells if two paths are equals.
 // Params:
-// 	-	a, b, two paths
+// 	-	a, b, two null-terminated paths
+// Returns 0 if the paths are equal, a non-zero value otherwise.
 //
 // ===========================================================================
 int fname_compare(char *a, char *b);

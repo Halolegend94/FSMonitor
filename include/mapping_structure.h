@@ -22,6 +22,11 @@
 		unsigned long long lastUpdate; 			//the last time the structure was updated
 	} mappingStructure;
 
+	/*some definitions*/
+	#define ERROR -1
+	#define PATH_UNAVAILABLE -2
+	#define PATH_ALREADY_MONITORED -3
+
 	/*function prototypes*/
 
 	// ===========================================================================
@@ -95,7 +100,7 @@
 	// Returns: 0 in case of success, -1 otherwise
 	//
 	// ===========================================================================
-	int get_notifications(mappingStructure *str, int sid, receivedNotification **list, int *count);
+	int get_notifications(mappingStructure *str, int sid, receivedNotification ***list, int *count);
 
 	// ===========================================================================
 	//
@@ -104,4 +109,5 @@
 	//
 	// ===========================================================================
 	void print_mappingstructure_state(mappingStructure *str);
+
 #endif
