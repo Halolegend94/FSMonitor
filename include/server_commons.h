@@ -14,7 +14,9 @@
    #include "time_utilities.h"
 
    #define DELAY_TOLLERANCE_FACTOR 1.3
-
+   #define ERROR -1
+   #define SUCCESS 0
+   
    typedef struct _serverStructure{
        int ID;
        int timeout;                  //frequence by which the monitor must check for updates
@@ -27,6 +29,9 @@
        mappingStructure *structure;  //the logic structure of the mapping
        pToThread thread;             //object that points to the daemon thread, if this process owns it
        int isActive;                 //tells if the server must continue its execution
+       char *tcpPort;                //the tcp port the server is listening to
+       char *udpPort;                //the udp port where the server sends uodates
+       int maxClientConnections;     //the number of simultaneous client connections that the socket will handle
        unsigned long long startUpTime; //the time the server was started
        //TODO: Clients list
    } serverStructure;

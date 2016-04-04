@@ -18,7 +18,12 @@ int main(int argc, char **argv){
        terminate_server();
    }
 
-   //TODO: avvia server tcp
+   //Start the TCP server
+   if(start_tcp_server() == ERROR){
+      fprintf(stderr, "serverMonitor: error while starting the tcp server.\n");
+      terminate_server();
+   }
+
    printf("Server (ID=%u) is active!\n", server.ID);
 
    thread_sleep(INITIAL_DELAY); //so serverMonitor and daemon will be active at different time windows
@@ -166,6 +171,22 @@ void load_settings(){
       exit(0);
    }
    free(t2);
+   server.udpPort = get_setting_by_name("udpPort", &loadedSettings);
+   if(!server.udpPort){
+      fprintf(stderr, "serverMonitor: error while calling get_setting_by_name.\n");
+      exit(0);
+   }
+   server.tcpPort = get_setting_by_name("tcpPort", &loadedSettings);
+   if(!server.tcpPort){
+      fprintf(stderr, "serverMonitor: error while calling get_setting_by_name.\n");
+      exit(0);
+   }
+   t2 = get_setting_by_name("maxConn", &loadedSettings);
+   server.maxClientConnections = atoi(t2);
+   if(server.maxClientConnections == 0){
+      fprintf(stderr, "serverMonitor: error while loading the maxConn param.\n");
+      exit(0);
+   }
    free_settings_structure(&loadedSettings);
 
    server.isActive = 1;
