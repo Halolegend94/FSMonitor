@@ -1,7 +1,7 @@
 #include "../include/syncmapping.h"
 #include <windows.h>
 #include "utilities.h"
-/*this structure is used as a reference to the file used as mutex.*/
+/*this structure is used as wrapper for the mutex handle.*/
 struct syncMapping {
     HANDLE mutex;
 };
@@ -53,7 +53,7 @@ int syncmapping_release(struct syncMapping *lock) {
 // ===========================================================================
 int syncmapping_closelock(struct syncMapping *lock){
 	if(!CloseHandle(lock->mutex)){
-		fprintf(stderr, "Error while closing the lock file handle.\n");
+		fprintf(stderr, "Error while closing the mutex handle.\n");
 		return -1;
 	}
 	free(lock);
