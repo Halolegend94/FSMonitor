@@ -16,8 +16,24 @@
 #define MAX_TOKEN_LEN 20
 #define MAX_TOKEN_INC 15
 
+#define TRUE 1
+#define FALSE 0
+
 /*function prototypes*/
 char *__get_perm_string(mode_t mode);
+
+// ===========================================================================
+// is_dir_accessible
+// ===========================================================================
+int is_dir_accessible(char *dir){
+	DIR *dpointer = opendir(dir);
+	if(!dpointer){
+		return FALSE;
+	}else{
+		closedir(dpointer);
+		return TRUE;
+	}
+}
 
 // ===========================================================================
 // get_directory_content
@@ -26,8 +42,8 @@ int get_directory_content(char *dir, myFileList *fileList){
 	/*allocate initial resources*/
 	fileList->list = (myFile **) malloc(MAXFILES * sizeof(myFile *));
 	if(!fileList->list){
-		fprintf(stderr, "Error while allocating memory.\n");
-		return -1;
+		fprintf(stderr, "get_directory_content: error while allocating memory.\n");
+		return PROG_ERROR;
 	}
 	fileList->count = 0;
 	int currentListCapacity = MAXFILES;
@@ -38,7 +54,7 @@ int get_directory_content(char *dir, myFileList *fileList){
 	dpointer = opendir(dir);
 	if(!dpointer){
 		free(fileList->list);
-		return -2;
+		return PATH_NOT_ACCESSIBLE;
 	}
 	dirEntry = readdir(dpointer);
 	/*scan directory*/

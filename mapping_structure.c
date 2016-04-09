@@ -36,8 +36,8 @@ int initialize_mapping_structure(char *memoryBlock, mappingStructure **str,
 		if( ret == ERROR){ //error
 			fprintf(stderr, "initialize_mapping_structure: error while performing the first scan.\n");
 			return ERROR;
-		}else if(ret == PATH_UNAVAILABLE){
-				return PATH_UNAVAILABLE; //path no longer available
+		}else if(ret == PATH_NOT_ACCESSIBLE){
+				return PATH_NOT_ACCESSIBLE; //path no longer available
 		}
 		unsigned long long lastUpdate = get_current_time();
 		if(lastUpdate == 0){
@@ -81,8 +81,8 @@ int initialize_mapping_structure(char *memoryBlock, mappingStructure **str,
 		if(ret == ERROR){
 			fprintf(stderr, "intialize_mapping_structure: error while performing the first scan.\n");
 			return ERROR;
-		}else if(ret == PATH_UNAVAILABLE){
-			return PATH_UNAVAILABLE;
+		}else if(ret == PATH_NOT_ACCESSIBLE){
+			return PATH_NOT_ACCESSIBLE;
 		}
 
 		if(nb_create(&firstElement, 0, serverPath) == -1){
@@ -104,8 +104,8 @@ int register_server_path(mappingStructure *str, int serverID, char *path){
 	if( ret == ERROR){ //error
 		fprintf(stderr, "register_server_path: error while performing the first scan.\n");
 		return ERROR;
-	}else if(ret == PATH_UNAVAILABLE){
-			return PATH_UNAVAILABLE; //path no longer available
+	}else if(ret == PATH_NOT_ACCESSIBLE){
+			return PATH_NOT_ACCESSIBLE; //path no longer available
 	}
 
 	/*add the notification bucket*/

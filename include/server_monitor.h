@@ -3,9 +3,9 @@
    #include "daemon.h"
    #include "server_commons.h"
    #include "signal_handler.h"
+   #include "networking.h"
 
    //GLOBAL VARIABLES: serverStructure server
-
    #define DELAY_TOLLERANCE_FACTOR 1.3
    #define INITIAL_DELAY 2
    /*function prototypes*/

@@ -29,7 +29,7 @@
       struct sockaddr_storage clientAddress;
       int clientLen;
       char *hostName;
-   } *clientData;
+   } clientData;
 
    // ==========================================================================
    //
@@ -76,7 +76,7 @@
    // Returns a socket file descriptor if successful, -1 otherwise.
    //
    // ==========================================================================
-   int accept_connection(int serverSocket, clientData *clt);
+   int accept_connection(int serverSocket, clientData **clt);
 
 
    // ==========================================================================

@@ -21,14 +21,19 @@
 		linkedItem *current;
 	}linkedListIterator;
 
+	#define PROG_ERROR -1
+	#define PROG_SUCCESS 0
+
 	// ==========================================================================
 	//
 	// ll_create
 	// Description: creates a new empty linked list
-	// Returns the linked list structure
+	// Params:
+	// 	-	list: a pointer to a location where a pointer to a new empty linkedList will be stored.
+	// Returns 0 in case of success, -1 in case of error.
 	//
 	// ==========================================================================
-	linkedList ll_create();
+	int ll_create(linkedList **list);
 
 	// ==========================================================================
 	//
@@ -49,28 +54,19 @@
 	// 	-	list: a pointer to the linked list where to remove a particular Item
 	// 	-	item: the pointer to a LinkedItem element that must be removed from
 	// 		the linked list.
-	// Returns 0 in case of success, -1 in case of error.
+	// Returns SUCCESS in case of success, ERROR in case of error.
 	//
 	// ==========================================================================
 	int ll_remove_item(linkedList *list, linkedItem *Item);
 
 	// ==========================================================================
 	//
-	// ll_create_iterator
-	// Description: creates an iterator to list all the elemnts in a linked list.
+	// ll_free
+	// Description: free all the memory occupied by the linkedItems (and the object they point at)
+	// and the list itself.
 	// Params:
-	// 	-	list: the pointer to the linked list to iterate on
-	// Retuns 0 in case of success, -1 otherwise
+	// 	-	list: the list to be freed
 	//
 	// ==========================================================================
-	linkedListIterator ll_create_iterator(linkedList *list);
-
-	// ==========================================================================
-	//
-	// ll_iter_next
-	// Description: get the next element of a linkedlist through an iterator.
-	// Returns the pointer to the element in case of success, NULL in case of error.
-	//
-	// ==========================================================================
-	void *ll_iter_next(linkedListIterator *it);
+	void ll_free(linkedList *list);
 #endif

@@ -1,8 +1,9 @@
 #ifndef __CRLOCK__
    #define __CRLOCK__
-
-   #define SUCCESS 0
-   #define ERROR -1
+   #include <stdlib.h>
+   #include <stdio.h>
+   #define PROG_SUCCESS 0
+   #define PROG_ERROR -1
 
    typedef struct crLock *pCRLock;
 

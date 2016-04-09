@@ -12,10 +12,6 @@
    #include "myfile.h"
    #include "thread.h"
    #include "time_utilities.h"
-
-   #define DELAY_TOLLERANCE_FACTOR 1.3
-   #define ERROR -1
-   #define SUCCESS 0
    
    typedef struct _serverStructure{
        int ID;

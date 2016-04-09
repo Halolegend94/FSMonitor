@@ -19,10 +19,10 @@ int main(int argc, char **argv){
    }
 
    //Start the TCP server
-   if(start_tcp_server() == ERROR){
+   /*if(start_tcp_server() == PROG_ERROR){
       fprintf(stderr, "serverMonitor: error while starting the tcp server.\n");
       terminate_server();
-   }
+   }*/
 
    printf("Server (ID=%u) is active!\n", server.ID);
 

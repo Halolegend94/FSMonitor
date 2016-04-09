@@ -38,7 +38,7 @@ int get_directory_content(char *dir, myFileList *fileList) {
 	char *path = (char *) malloc((len + 3) * sizeof(char));
 	if (!path) {
 		fprintf(stderr, "Error while allocating memory.\n");
-		return -1;
+		return PROG_ERROR;
 	}
 	strcpy(path, dir);
 	strcat(path, "\\*");
@@ -47,7 +47,7 @@ int get_directory_content(char *dir, myFileList *fileList) {
 	if (!fileList->list) {
 		fprintf(stderr, "Error while allocating memory.\n");
 		free(path);
-		return -1;
+		return PROG_ERROR;
 	}
 	fileList->count = 0;
 
@@ -56,7 +56,7 @@ int get_directory_content(char *dir, myFileList *fileList) {
 		fprintf(stderr, "Invalid search handle returned (%s).\n", path);
 		free(path);
 		free(fileList->list);
-		return -2;
+		return PATH_NOT_ACCESSIBLE;
 	}
 	do { //for each file in dir...
 		if (fileList->count >= currentCapacity) { //if the list is full, reallocate memory
@@ -65,7 +65,7 @@ int get_directory_content(char *dir, myFileList *fileList) {
 			if (!fileList->list) {
 				fprintf(stderr, "Error while reallocating memory.\n");
 				free(path);
-				return -1;
+				return PROG_ERROR;
 			}
 		}
 		type = __get_file_type(&findData); //we need to know if it's a dir or a reg file
@@ -73,7 +73,7 @@ int get_directory_content(char *dir, myFileList *fileList) {
 		myFile *file = malloc(sizeof(myFile));
 		if(!file){
 			fprintf(stderr, "get_directory_content: error while allocating memory.\n");
-			return -1;
+			return PROG_ERROR;
 		}
 		file->isDir = type == T_DIR ? TRUE : FALSE;
 		/*if (type == T_DIR) //set the type
@@ -94,14 +94,14 @@ int get_directory_content(char *dir, myFileList *fileList) {
 		file->name = (char *) malloc((namelen + 1) * sizeof(char));
 		if (!(file->name)) {
 			fprintf(stderr, "get_directory_content: error while allocating memory.\n");
-			return -1;
+			return PROG_ERROR;
 		}
 		strcpy(file->name, findData.cFileName);
 		//find permissions
 		char *fullPath = concatenate_path(dir, findData.cFileName);
 		if(!fullPath){
 			fprintf(stderr, "Error while getting the full path for %s\n", findData.cFileName);
-			return -1;
+			return PROG_ERROR;
 		}
 		int ret = 0; //return value
 		char *perms = __get_security_acls(fullPath, &ret);
@@ -110,12 +110,12 @@ int get_directory_content(char *dir, myFileList *fileList) {
 			perms = malloc(sizeof(char));
 			if(!perms){
 				fprintf(stderr, "get_directory_content: error while allocating memory.\n");
-				return -1;
+				return PROG_ERROR;
 			}
 			perms[0] = '\0';
 		}else if(!perms){ //error
 			fprintf(stderr, "Error while getting information %s. Terminating.\n", findData.cFileName);
-			return -1;
+			return PROG_ERROR;
 		}
 		free(fullPath);
 		file->perms = perms;
@@ -125,9 +125,9 @@ int get_directory_content(char *dir, myFileList *fileList) {
 	free(path);
 	if (!FindClose(searchHandle)) {
 		fprintf(stderr, "Error while closing the search handle.\n");
-		return -1;
+		return PROG_ERROR;
 	}
-	return 0;
+	return PROG_SUCCESS;
 }
 
 // ==========================================================================
@@ -195,7 +195,6 @@ char *concatenate_path(char *path, char *lastpiece){
 	return temp;
 }
 
-
 // ===========================================================================
 // is_absolute_path
 // ===========================================================================
@@ -203,6 +202,36 @@ int is_absolute_path(char *path){
 	if(strlen(path) < 3) return 0;
 	if(isalpha(path[0]) && (path[1] == ':') && (path[2] == '\\')) return 1;
 	return 0;
+}
+
+// ===========================================================================
+// is_dir_accessible
+// ===========================================================================
+int is_dir_accessible(char *dir) {
+	HANDLE searchHandle;
+	WIN32_FIND_DATA findData;
+
+	/*we first append the windcard symbol * to dir*/
+	int len = strlen(dir);
+	char *path = (char *) malloc((len + 3) * sizeof(char));
+	if (!path) {
+		fprintf(stderr, "is_dir_accessible: error while allocating memory.\n");
+		return PROG_ERROR;
+	}
+	strcpy(path, dir);
+	strcat(path, "\\*");
+
+	searchHandle = FindFirstFile(path, &findData);
+	free(path);
+	if(searchHandle == INVALID_HANDLE_VALUE){
+		return FALSE;
+	}else{
+		if(!FindClose(searchHandle)){
+			fprintf(stderr, "%s\n", "is_dir_accessible: error while closing the search handle.\n");
+			return PROG_ERROR;
+		}
+		return TRUE;
+	}
 }
 
 // ===========================================================================
@@ -424,9 +453,9 @@ char *get_current_directory(void) {
 // ===========================================================================
 int delete_file(char *filename) {
 	if (DeleteFile(filename)) {
-		return 0;
+		return PROG_SUCCESS;
 	}else{
-		return -1;
+		return PROG_ERROR;
 	}
 }
 
@@ -445,13 +474,13 @@ int is_directory(char *dir){
 int tokenize_path(char *path, char ***tokenList, int *tokenListSize){
 	if(MAX_TOKENS < 1 || MAX_TOKEN_LEN < 3){
 		fprintf(stderr, "tokenize_path: DEFINITIONS values not valid.\n");
-		return -1;
+		return PROG_ERROR;
 	}
 
 	*tokenList = (char **) malloc(sizeof(char *) * MAX_TOKENS);
 	if(!(*tokenList)){
 		fprintf(stderr, "tokenize_path: error while allocating memory.\n");
-		return -1;
+		return PROG_ERROR;
 	}
 	int charIndex = 0;
 	int charsRead = 0;
@@ -462,13 +491,13 @@ int tokenize_path(char *path, char ***tokenList, int *tokenListSize){
 	char *tempToken = malloc(sizeof(char) * maxCapacity);
 	if(!tempToken){
 		fprintf(stderr, "tokenize_path: error while allocating memory.\n");
-		return -1;
+		return PROG_ERROR;
 	}
 
 	//IMPORTANT: the first token will always be the disk name (eg C:\)
 	if(sprintf(tempToken, "%c:\\", path[0]) < 0){
 		fprintf(stderr, "tokenize_path: Error while creating a token\n");
-		return -1;
+		return PROG_ERROR;
 	}
 	(*tokenList)[0] = tempToken;
 	*tokenListSize = 1;
@@ -477,7 +506,7 @@ int tokenize_path(char *path, char ***tokenList, int *tokenListSize){
 	tempToken = malloc(sizeof(char) * maxCapacity);
 	if(!tempToken){
 		fprintf(stderr, "tokenize_path: error while allocating memory.\n");
-		return -1;
+		return PROG_ERROR;
 	}
 
 	while(charIndex < pathLen){
@@ -486,7 +515,7 @@ int tokenize_path(char *path, char ***tokenList, int *tokenListSize){
 			tempToken = realloc(tempToken, maxCapacity);
 			if(!tempToken){
 				fprintf(stderr, "tokenize_path: error while reallocating memory.\n");
-				return -1;
+				return PROG_ERROR;
 			}
 		}
 		if(path[charIndex] == '\\' || path[charIndex] == '/') { //token end reached
@@ -498,14 +527,14 @@ int tokenize_path(char *path, char ***tokenList, int *tokenListSize){
 			tempToken = malloc(sizeof(char) * maxCapacity);
 			if(!tempToken){
 				fprintf(stderr, "tokenize_path: error while allocating memory.\n");
-				return -1;
+				return PROG_ERROR;
 			}
 			if(*tokenListSize >= maxTokCapacity){
 				maxTokCapacity += MAX_TOKENS_INC;
 				*tokenList = realloc(*tokenList, sizeof(char *) * maxTokCapacity);
 				if(!(*tokenList)){
 					fprintf(stderr, "tokenize_path: error while reallocating memory.\n");
-					return -1;
+					return PROG_ERROR;
 				}
 			}
 		}else{
@@ -519,7 +548,7 @@ int tokenize_path(char *path, char ***tokenList, int *tokenListSize){
 	}else{
 		free(tempToken);
 	}
-	return 0;
+	return PROG_SUCCESS;
 }
 
 // ===========================================================================
@@ -534,7 +563,7 @@ int get_file_info(myFileList *fileList, char *filename, myFile **file){
 		}
 	}
 	*file = NULL;
-	return 0;
+	return PROG_SUCCESS;
 }
 
 // ===========================================================================
@@ -543,9 +572,9 @@ int get_file_info(myFileList *fileList, char *filename, myFile **file){
 int print_file_info(myFile *file){
 	if(!file){
 		fprintf(stderr, "Error in print_file_info: file is null.\n");
-		return -1;
+		return PROG_ERROR;
 	}
 	printf("name: %s\nsize: %lld\nperms: %s\nlast write: %lld\nisDir: %d\n", file->name, file->size,
 				file->perms, file->lastWriteTimestamp, file->isDir);
-	return 0;
+	return PROG_SUCCESS;
 }

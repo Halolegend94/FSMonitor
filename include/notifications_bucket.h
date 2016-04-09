@@ -8,7 +8,7 @@
    #include <stdlib.h>
    #include <string.h>
 
-   #define ERROR -1
+   #define PROG_ERROR -1
 
    /*the following structure defines a linked list of notifications to be used inside the
    file mapping*/

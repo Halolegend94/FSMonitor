@@ -3,6 +3,7 @@
 	#include "notifications_bucket.h"
 	#include "filesystree.h"
 	#include "mem_management.h"
+	#include "common_definitions.h"
 	#include "myfile.h"
 	#include "time_utilities.h"
 	#include "received_notification.h"
@@ -22,10 +23,6 @@
 		unsigned long long lastUpdate; 			//the last time the structure was updated
 	} mappingStructure;
 
-	/*some definitions*/
-	#define ERROR -1
-	#define PATH_UNAVAILABLE -2
-	#define PATH_ALREADY_MONITORED -3
 
 	/*function prototypes*/
 

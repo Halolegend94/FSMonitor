@@ -3,13 +3,17 @@
 // ==========================================================================
 // ll_create
 // ==========================================================================
-linkedList ll_create(){
-	linkedList l;
-	l.idCounter = 0;
-	l.count = 0;
-	l.first = NULL;
-	l.last = NULL;
-	return l;
+int ll_create(linkedList **list){
+	*list = malloc(sizeof(linkedList));
+	if(!(*list)){
+		fprintf(stderr, "ll_create: error while creating a linkedList.\n");
+		return PROG_ERROR;
+	}
+	(*list)->idCounter = 0;
+	(*list)->count = 0;
+	(*list)->first = NULL;
+	(*list)->last = NULL;
+	return PROG_SUCCESS;
 }
 
 // ==========================================================================
@@ -27,8 +31,10 @@ int ll_add_item(linkedList *list, void *pItem){
 	el->id = list->idCounter++;
 
 	if(len == 0) {
+		el->prev = NULL;
 		list->first = el;
 	}else{
+		el->prev = list->last;
 		(list->last)->next = el;
 	}
 	list->last = el;
@@ -44,6 +50,7 @@ int ll_remove_item(linkedList *list, linkedItem *item){
 		fprintf(stderr, "ll_remove_elment: the list is empty.\n");
 		return -1;
 	}
+
 	while(item->id != current->id){
 		current = current->next;
 		if(current == NULL) break;
@@ -72,19 +79,15 @@ int ll_remove_item(linkedList *list, linkedItem *item){
 }
 
 // ==========================================================================
-// ll_create_iterator
+// ll_free
 // ==========================================================================
-linkedListIterator ll_create_iterator(linkedList *list){
-	linkedListIterator i;
-	i.current = list->first;
-	return i;
-}
-// ==========================================================================
-// ll_iter_next
-// ==========================================================================
-void *ll_iter_next(linkedListIterator *it){
-	if(it->current == NULL) return NULL;
-	void *val = (it->current)->item;
-	it->current = (it->current)->next;
-	return val;
+void ll_free(linkedList *list){
+	linkedItem *item = list->first;
+	while(item){
+		free(item->item);
+		linkedItem *next = item->next;
+		free(item);
+		item = next;
+	}
+	free(list);
 }

@@ -298,7 +298,7 @@ int nb_exists_bucket(notificationsBucket *start, int serverID, char *path, notif
    char *tpath = concatenate_path(path, "");
    if(!tpath){
      fprintf(stderr, "nb_exists_bucket: error while concatenating a path.\n");
-     return ERROR;
+     return PROG_ERROR;
    }
    notificationsBucket *current = start;
 	do{
@@ -336,12 +336,12 @@ int nb_update_bucket_path(notificationsBucket *bucket, char *path){
 char *tpath = concatenate_path(path, "");
 if(!tpath){
    fprintf(stderr, "nb_update_bucket_path: error while concatenating a path.\n");
-   return ERROR;
+   return PROG_ERROR;
 }
 char *mapPath = pmm_malloc(sizeof(char) * (strlen(tpath) + 1));
 if(!mapPath){
    fprintf(stderr, "nb_update_bucket_path: error while allocating memory.\n");
-   return ERROR;
+   return PROG_ERROR;
 }
 strcpy(mapPath, tpath);
 free(tpath);
