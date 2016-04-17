@@ -7,7 +7,8 @@
    #include "client_node_list.h"
    #include "networking.h"
    #include "common_definitions.h"
-
+   #include "received_notification.h"
+   
    /*this struct represents a client registration to a path.*/
    typedef struct _registration{
       clientNode *client;
@@ -52,6 +53,11 @@
    int cpt_remove_child(pathNode *father, pathNode *child);
 
 
+   // ===========================================================================
+   // cpt_push_notification
+   // ===========================================================================
+   int cpt_push_notification(pathNode *root, receivedNotification *not, char *stringNot);
+   
    void cpt_print_tree(pathNode *root);
 
 #endif

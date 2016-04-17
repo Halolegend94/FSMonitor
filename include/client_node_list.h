@@ -7,9 +7,12 @@
    #include <string.h>
    #include "common_definitions.h"
 
+   #define DEL_MSG_SIZE 2048
+   
    typedef struct _clientNode{
       clientData *networkData;
       linkedList *updates;
+      char deletionMark; //used to tell if at the next notification dispatch event this clientNode must be removed
       int numRegisteredPaths;
       struct _clientNode *next;
    } clientNode;
@@ -39,6 +42,16 @@
    // ===========================================================================
    int cnl_remove_client_node(clientNodeList *root, clientNode *node);
 
+   // ===========================================================================
+   // cnl_add_notification
+   // ===========================================================================
+   int cnl_add_notification(clientNode *client, char *notString);
+
+   // ===========================================================================
+   // cnl_signal_deletion
+   // ===========================================================================
+   int cnl_signal_deletion(clientNode *client, char *fld);
+   
    // ===========================================================================
    // cnl_print_list
    // ===========================================================================

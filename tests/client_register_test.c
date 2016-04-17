@@ -1,6 +1,6 @@
 #include "../include/client_register.h"
 #include "../include/networking.h"
-
+#include "../include/received_notification.h"
 int main(void){
 
    //prima fase di tests
@@ -25,38 +25,59 @@ int main(void){
    cr_register_path(reg, &data1, "/home/cristian/Documenti", RECURSIVE);
    //print_client_register(reg);
 
-   printf("Seconda registrazione data1 NONRECURSIVE: \n");
-   cr_register_path(reg, &data1, "/home/cristian/Documenti", NONRECURSIVE);
-   //print_client_register(reg);
-
-   printf("Terza registrazione data1: \n");
-   cr_register_path(reg, &data1, "/home/cristian/Scaricati", RECURSIVE);
-   //print_client_register(reg);
-
    printf("Quarta registrazione data2: \n");
+
+   cr_register_path(reg, &data3, "/home/cristian/Documenti/Repo V&V", RECURSIVE);
    cr_register_path(reg, &data2, "/home/cristian/Scaricati", RECURSIVE);
-   //print_client_register(reg);
-
-   printf("Quinta registrazione data2: \n");
-   cr_register_path(reg, &data2, "/home/cristian", NONRECURSIVE);
-   //print_client_register(reg);
-
-
-   printf("Cancelliamo un po di registrazioni.\n\n");
-   printf("Cancello scaricati data2: \n");
-   cr_unregister_path(reg, &data2, "/home/cristian/Scaricati");
    print_client_register(reg);
 
-   printf("Cancello scaricati data1: \n");
-   cr_unregister_path(reg, &data1, "/home/cristian/Scaricati");
-   print_client_register(reg);
+   receivedNotification not1;
+   receivedNotification not2;
+   receivedNotification not3;
+   receivedNotification not4;
 
-   printf("Cancello cristian data2: \n");
-   cr_unregister_path(reg, &data2, "/home/cristian");
-   print_client_register(reg);
+   not1.path = "/home/cristian/Documenti/Nuovo file.txt";
+   not1.size = 1;
+   not1.modTimestamp = 3;
+   not1.perms = "perms";
+   not1.isDir = 0;
+   not1.type = creation;
 
-   printf("Cancello scaricati data1: \n");
-   cr_unregister_path(reg, &data1, "/home/cristian/Documenti");
-   print_client_register(reg);
+   not2.path = "/home/cristian/Documenti/file.txt";
+   not2.size = 1;
+   not2.modTimestamp = 3;
+   not2.perms = "perms";
+   not2.isDir = 0;
+   not2.type = creation;
+
+   not3.path = "/home/cristian/Documenti";
+   not3.size = 1;
+   not3.modTimestamp = 3;
+   not3.perms = "perms";
+   not3.isDir = 1;
+   not3.type = deletion;
+
+
+   //PUSH NOT
+   if(cpt_push_notification(reg->treeRoot, &not1, get_string_representation(&not1, 1))==PROG_ERROR){
+      printf("Error pushing not1\n");
+      return -1;
+   }
+   cnl_print_list(reg->nodeList);
+
+   //PUSH NOT
+   if(cpt_push_notification(reg->treeRoot, &not2, get_string_representation(&not2, 1))==PROG_ERROR){
+      printf("Error pushing not2\n");
+      return -1;
+   }
+   cnl_print_list(reg->nodeList);
+
+   //PUSH NOT
+   if(cpt_push_notification(reg->treeRoot, &not3, get_string_representation(&not3, 1))==PROG_ERROR){
+      printf("Error pushing not3\n");
+      return -1;
+   }
+   cnl_print_list(reg->nodeList);
+
    return 0;
 }

@@ -15,6 +15,7 @@
    typedef struct _notification{
          unsigned long off_path;
          long long size;
+         char isDir;
          long long modTimestamp;
          unsigned long off_perms;
          notificationType type; //common_definitions.h
@@ -89,7 +90,7 @@
    //
    // ===========================================================================
    int nb_push_notification(notificationsBucket *start, char *perms, char *path, long long size,
-                              long long mod, int isDir, notificationType type);
+                              long long mod, char isDir, notificationType type);
 
    // ===========================================================================
    //

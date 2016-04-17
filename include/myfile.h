@@ -16,7 +16,7 @@
 		long long size;
 		unsigned long long lastWriteTimestamp;
 		char *perms;
-		int isDir;
+		char isDir;
 	} myFile;
 
 	//a list of files. This struct is filled by get_directory_content

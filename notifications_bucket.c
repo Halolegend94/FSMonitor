@@ -135,7 +135,7 @@ int nb_remove_bucket(notificationsBucket *start, int serverID, char *pathName){
 // nb_push_notification
 // ===========================================================================
 int nb_push_notification(notificationsBucket *start, char *perms, char *path,
-    long long size, long long mod, int isDir, notificationType type){
+    long long size, long long mod, char isDir, notificationType type){
 
    notificationsBucket *current = NULL;
    /*the following code is used to correctly verify if the path file is in the
@@ -199,6 +199,7 @@ int nb_push_notification(notificationsBucket *start, char *perms, char *path,
          newNotification->size = size;
          newNotification->modTimestamp = mod;
          newNotification->type = type;
+         newNotification->isDir = isDir;
          newNotification->off_next = 0;
       }
       if(current->off_next == 0){
@@ -268,6 +269,7 @@ int nb_read_notifications(notificationsBucket *start, receivedNotification ***li
                }
                strcpy(tperms, mPerms);
                localNot->perms = tperms;
+               localNot->isDir = currentNot->isDir;
                localNot->type = currentNot->type;
                *count = *count + 1;
                //delete the notification from the linked list

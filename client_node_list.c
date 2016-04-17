@@ -75,6 +75,7 @@ int cnl_add_client_node(clientNodeList *root, clientData *data, int numPaths, cl
       (root->last)->next = newNode;
    }
    root->last = newNode;
+   newNode->deletionMark = 0;
    *addedNode = newNode;
    return PROG_SUCCESS;
 }
@@ -110,13 +111,62 @@ int cnl_remove_client_node(clientNodeList *root, clientNode *node){
 }
 
 // ===========================================================================
+// cnl_add_notification
+// ===========================================================================
+int cnl_add_notification(clientNode *client, char *notString){
+   char *tcopy = malloc(sizeof(char) * (strlen(notString) + 1));
+   if(!tcopy){
+      fprintf(stderr, "cnl_add_notification: error while allocating memory.\n");
+      return PROG_ERROR;
+   }
+   strcpy(tcopy, notString);
+   if(ll_add_item(client->updates, tcopy) == PROG_ERROR){
+      fprintf(stderr, "cnl_add_notification: error while adding a notification to a client's updates list.\n");
+      return PROG_ERROR;
+   }
+   return PROG_SUCCESS;
+}
+
+// ===========================================================================
+// cnl_signal_deletion
+// ===========================================================================
+int cnl_signal_deletion(clientNode *client, char *fld){
+   char *not = malloc(sizeof(char) * DEL_MSG_SIZE);
+   if(!not){
+      fprintf(stderr, "cnl_add_notification: error while allocating memory.\n");
+      return PROG_ERROR;
+   }
+   if(sprintf(not, "The path \"%s\" has been deleted and one of your registrations has been removed accordingly.\n", fld) < 0){
+      fprintf(stderr, "cnl_signal_deletion: error while creating a string.\n");
+      return PROG_ERROR;
+   }
+   if(ll_add_item(client->updates, not) == PROG_ERROR){
+      fprintf(stderr, "cnl_add_notification: error while adding a notification to a client's updates list.\n");
+      return PROG_ERROR;
+   }
+   client->numRegisteredPaths--;
+   if(client->numRegisteredPaths == 0) client->deletionMark = 1;
+   else if(client->numRegisteredPaths < 0){ //DEBUG PURPOSES
+      fprintf(stderr, "cnl_signal_deletion: inconsistent number of registed path.\n");
+      return PROG_ERROR;
+   }
+   return PROG_SUCCESS;
+}
+
+// ===========================================================================
 // cnl_print_list
 // ===========================================================================
 void cnl_print_list(clientNodeList *list){
    printf("________CLIENT NODE LIST_____________\n\n");
    clientNode *current = list->first;
    while(current != NULL){
-      printf("NODE: %s\n", current->networkData->hostName);
+      printf("NODE: %s - marked: %d\n", current->networkData->hostName, current->deletionMark);
+      printf("     Notification for this node:\n");
+      linkedItem *ci = current->updates->first;
+      while(ci){
+         printf("       - %s\n", (char *) ci->item);
+         ci = ci->next;
+      }  
       current = current->next;
    }
 

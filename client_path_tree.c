@@ -135,7 +135,6 @@ int cpt_add_client_registration(pathNode *root, char *path, clientNodeList *cnl,
       return PROG_ERROR;
    }
 
-   printf("nodo: %s\n", added->name);
    /*need to add a registration item. first we check if the client already monitors the path.
    If so, we only update the "mode" field.*/
    for(i = 0; i < added->numRegistrations; i++){
@@ -304,7 +303,110 @@ void __cpt_print_tree_rec(pathNode *node, int lev){
    }
 }
 
+// ===========================================================================
+// cpt_print_tree
+// ===========================================================================
 void cpt_print_tree(pathNode *root){
    printf("_________CLIENT PATH TREE______________\n\n");
    __cpt_print_tree_rec(root, 1);
+}
+
+
+// ===========================================================================
+// cpt_delete_subtree
+// ===========================================================================
+int cpt_delete_subtree(pathNode *node, char *str){
+      int i; 
+      for(i = 0; i < node->numChildren; i++){
+            cpt_delete_subtree(node->children[i], str);
+      }
+      //delete node
+      //send notification to clients
+      int j;
+      for(j = 0; j < node->numRegistrations; j++){
+            if(cnl_signal_deletion(node->registrations[j]->client, str) == PROG_ERROR){
+                  fprintf(stderr, "cnl_delete_subtree: error while signaling a deletion.\n");
+                  return PROG_ERROR;
+            }
+            free(node->registrations[j]);
+      }
+      //delete node
+      if(j > 0) free(node->registrations);
+      if(i > 0) free(node->children);
+      free(node->name);
+      free(node);
+}
+
+// ===========================================================================
+// cpt_push_notification
+// ===========================================================================
+int cpt_push_notification(pathNode *root, receivedNotification *not, char *stringNot){
+      char **tokens;
+      int numTokens;
+      if(tokenize_path(not->path, &tokens, &numTokens) == PROG_ERROR){
+            fprintf(stderr, "cpt_push_notification: error while tokenizing the path.\n");
+            return PROG_ERROR;
+      }
+      pathNode *current = root;
+      pathNode *child;
+      int i = 0;
+      int maxIndex = not->isDir ? numTokens : numTokens - 1;
+      int maxInternIndex = maxIndex - 1;
+      /*now we get to the tree node corresponding to not->path, if any.
+      During the visit, it must be checked whether there is a node along the
+      path that presents a client which is registered in RECURSIVE mode. 
+      In that case the client will receive the notification, too.*/
+      while(i < maxIndex){
+            if(cpt_contains_child(current, tokens[i], &child)){ //node present
+                  int j; //counter
+                  for(j = 0; j < child->numRegistrations; j++){
+                        if((i < maxInternIndex && child->registrations[j]->mode == RECURSIVE) || i == maxInternIndex) {
+                              //add this notification
+                              if(cnl_add_notification(child->registrations[j]->client, stringNot) == PROG_ERROR){
+                                    fprintf(stderr, "cpt_push_notification: error while adding a notification to a client.\n");
+                                    return PROG_ERROR;
+                              }
+                        }
+                  }
+              
+                  if(i++ != maxInternIndex) current = child; //beacuse we'll need father and child
+            }else{ //there are no more clients we can send this notification to
+                  for(i = 0; i < numTokens; i++) free(tokens[i]);
+                  free(tokens);
+                  return PROG_SUCCESS;
+            }
+      }
+      for(i = 0; i < numTokens; i++) free(tokens[i]);
+      free(tokens);
+      /*there is one last case to handle. A branch of the filesystem is deleted and all the clients
+      registered for a subdirectory of that branch must be notified. If this is the case, corrent
+      represents the deleted node. All the clients registered to descendants of this node must be
+      notified.*/
+      if(not->isDir == 1 && not->type == deletion){
+            if(cpt_delete_subtree(child, not->path) == PROG_ERROR){
+                  fprintf(stderr, "cpt_push_notification: error while removing a subtree.\n");
+                  return PROG_ERROR;
+            }
+            if(current->numChildren == 1){
+                  free(current->children);
+                  current->numChildren = 0;
+            }else{
+                  pathNode **newList = malloc(sizeof(pathNode *) *(current->numChildren - 1));
+                  if(!newList){
+                        fprintf(stderr, "cpt_push_notification: error while allocating memory.\n");
+                        return PROG_ERROR;
+                  }
+                  int i, k; //counter
+                  for(i = 0, k = 0; i < current->numChildren; i++){
+                        if(current->children[i] != child){
+                              newList[k++] = current->children[i];
+                        }
+                  }
+                  free(current->children); //free the old list
+                  current->children = newList;
+                  current->numChildren--;
+            }
+      }
+      
+      return PROG_SUCCESS;
 }

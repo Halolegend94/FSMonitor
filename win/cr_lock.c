@@ -18,9 +18,9 @@ int create_cr_lock(struct crLock **lock){
    (*lock)->mutex = CreateMutex(NULL, FALSE, NULL);
    if((*lock)->mutex == NULL){
       fprintf(stderr, "create_cr_lock: error while creating the mutex.\n");
-      return ERROR;
+      return PROG_ERROR;
    }
-	return SUCCESS;
+	return PROG_SUCCESS;
 }
 
 // ===========================================================================
@@ -30,9 +30,9 @@ int acquire_cr_lock(struct crLock *lock) {
    DWORD ret = WaitForSingleObject(lock->mutex, INFINITE);
    if(ret == WAIT_FAILED){
       fprintf(stderr, "create_cr_lock: error while acquiring the mutex.\n");
-      return ERROR;
+      return PROG_ERROR;
    }
-	return SUCCESS;
+	return PROG_SUCCESS;
 }
 
 // ===========================================================================
@@ -43,9 +43,9 @@ int release_cr_lock(struct crLock *lock) {
    if(unlocked == 0){
       printf("%s\n", GetLastErrorAsString());
       fprintf(stderr, "syncmapping_release: error while releasing the mutex.\n");
-      return ERROR;
+      return PROG_ERROR;
    }
-	return SUCCESS;
+	return PROG_SUCCESS;
 }
 
 // ===========================================================================
@@ -54,8 +54,8 @@ int release_cr_lock(struct crLock *lock) {
 int close_cr_lock(struct crLock *lock){
 	if(!CloseHandle(lock->mutex)){
 		fprintf(stderr, "Error while closing the lock handle.\n");
-		return ERROR;
+		return PROG_ERROR;
 	}
 	free(lock);
-	return SUCCESS;
+	return PROG_SUCCESS;
 }

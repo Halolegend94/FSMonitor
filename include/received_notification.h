@@ -14,6 +14,7 @@
       long long size;
       long long modTimestamp;
       char *perms;
+      int isDir;
       notificationType type;
    } receivedNotification;
 
