@@ -39,6 +39,7 @@ int nb_create(notificationsBucket **rootElement, int serverID, char *pathName){
    firstElement->off_path = pmm_pointer_to_offset(mapName);
    firstElement->off_next = 0;
    firstElement->off_list = 0;
+   firstElement->deletionMark = 0;
    firstElement->off_last_notification = 0;
 
    (*rootElement)->off_next = pmm_pointer_to_offset(firstElement);
@@ -76,6 +77,7 @@ int nb_add_bucket(notificationsBucket *start, int serverID, char *pathName){
    newBucket->off_path = pmm_pointer_to_offset(mapName);
    newBucket->off_list = 0;
    newBucket->off_next = 0;
+   newBucket->deletionMark = 0;
    newBucket->off_last_notification = 0;
    lastBucket->off_next = pmm_pointer_to_offset(newBucket);
    return 0;
@@ -151,11 +153,14 @@ int nb_push_notification(notificationsBucket *start, char *perms, char *path,
       return -1;
    }
    do{
-
+      if(current->deletionMark == 1){
+         current = pmm_offset_to_pointer(current->off_next);
+         continue;
+      }
       char *monitoredPath = pmm_offset_to_pointer(current->off_path);
-      int completelyDeleted =  is_prefix(monitoredPath, tempName) == 1;
+      if(is_prefix(monitoredPath, tempName) == 1) current->deletionMark = 1;
 
-      if(is_prefix(tempName, monitoredPath) == 1 || completelyDeleted){
+      if(is_prefix(tempName, monitoredPath) == 1 || current->deletionMark){
          //the server need to receive this notification
          notification *newNotification = pmm_malloc(sizeof(notification));
          unsigned long newOffset = pmm_pointer_to_offset(newNotification);
@@ -177,14 +182,14 @@ int nb_push_notification(notificationsBucket *start, char *perms, char *path,
          current->off_last_notification = newOffset;
 
          //now we set the structure values
-         int pathLen = completelyDeleted ? strlen(monitoredPath) : strlen(tempName);
+         int pathLen = current->deletionMark ? strlen(monitoredPath) : strlen(tempName);
          int permsLen = strlen(perms);
          char *tPath = pmm_malloc(sizeof(char) * (pathLen + 1));
          if(!tPath){
             fprintf(stderr, "nb_push_notification: error while allocating memory.\n");
             return -1;
          }
-         strcpy(tPath, completelyDeleted ? monitoredPath : tempName);
+         strcpy(tPath, current->deletionMark ? monitoredPath : tempName);
          tPath[pathLen - 1] = '\0';
          newNotification->off_path = pmm_pointer_to_offset(tPath);
 

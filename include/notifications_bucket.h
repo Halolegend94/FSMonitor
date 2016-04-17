@@ -24,6 +24,7 @@
 
    typedef struct _notificationsBucket{
       int serverID;
+      char deletionMark;
       unsigned long off_path;
       unsigned long off_next; //offset to the next bucket
       unsigned long off_list; //offset to the notifications linked list
