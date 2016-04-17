@@ -68,7 +68,7 @@ int get_directory_content(char *dir, myFileList *fileList){
 		char *fullPath = concatenate_path(dir, dirEntry->d_name);
 		if(!fullPath){
 			fprintf(stderr, "get_directory_content: error while getting the full path for %s\n", dirEntry->d_name);
-			return -1;
+			return PROG_ERROR;
 		}
 		struct stat fileData;
 		mode_t mode;
@@ -83,7 +83,7 @@ int get_directory_content(char *dir, myFileList *fileList){
 		myFile *file = malloc(sizeof(myFile));
 		if(!file){
 			fprintf(stderr, "%s\n","get_directory_content: error while allocating memory.\n");
-			return -1;
+			return PROG_ERROR;
 		}
 		mode = fileData.st_mode;
 		if(fileList->count >= currentListCapacity){ //if we exceed the initial space, realloc it
@@ -91,7 +91,7 @@ int get_directory_content(char *dir, myFileList *fileList){
 			fileList->list = (myFile **) realloc(fileList->list, currentListCapacity * sizeof(myFile *));
 			if(!fileList->list){
 				fprintf(stderr, "Error while reallocating memory.\n");
-				return -1;
+				return PROG_ERROR;
 			}
 		}
 
@@ -99,7 +99,7 @@ int get_directory_content(char *dir, myFileList *fileList){
 		if(!(file->name)){
 			fprintf(stderr, "Error while allocating memory.\n");
 			free(fileList->list);
-			return -1;
+			return PROG_ERROR;
 		}
 		//set the file name
 		strcpy(file->name, dirEntry->d_name);
@@ -125,7 +125,7 @@ int get_directory_content(char *dir, myFileList *fileList){
 		dirEntry = readdir(dpointer);
 	}
 	closedir(dpointer);
-	return 0;
+	return PROG_SUCCESS;
 }
 
 // ===========================================================================
@@ -185,8 +185,7 @@ int is_directory(char *name){
 	struct stat dirData;
 	mode_t mode;
 	int result = stat(name, &dirData);
-	if(result == -1){
-		fprintf(stderr, "Error while retrieving file \"%s\" information.\n", name);
+	if(result == -1){ //can't open
 		return 0;
 	}
 	mode = dirData.st_mode;
@@ -207,7 +206,7 @@ char *get_current_directory(void){
 		return NULL;
 	}
 	if(!getcwd(buff, size)){
-		fprintf(stderr, "Error while getting the current working directory.\n");
+		fprintf(stderr, "get_current_directory: error while getting the current working directory.\n");
 		return NULL;
 	}
 	return buff;

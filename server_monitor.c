@@ -67,7 +67,9 @@ int main(int argc, char **argv){
          //Now we can get notifications
          receivedNotification **notificationsList;
          int count;
-         if(get_notifications(server.structure, server.ID, &notificationsList, &count) == -1){
+         char **deletedPaths;
+         int numDeletedPaths;
+         if(get_notifications(server.structure, server.ID, &notificationsList, &count, &deletedPaths, &numDeletedPaths) == -1){
             fprintf(stderr, "serverMonitor: error while getting the notifications list. Aborting execution..\n");
             cs_terminate_server();
          }
@@ -76,6 +78,8 @@ int main(int argc, char **argv){
          for(i = 0; i < count; i++){
             printf("%s\n", get_string_representation(notificationsList[i], server.startUpTime));
          }
+         printf("num %d\n", numDeletedPaths);
+         for(i = 0; i < numDeletedPaths;i++) printf("delted: %s\n", deletedPaths[i]);
          syncmapping_release(server.mapLock);
      }
 }

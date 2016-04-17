@@ -97,7 +97,8 @@
 	// Returns: 0 in case of success, -1 otherwise
 	//
 	// ===========================================================================
-	int get_notifications(mappingStructure *str, int sid, receivedNotification ***list, int *count);
+	int get_notifications(mappingStructure *str, int sid, receivedNotification ***list, int *count,
+		char ***deletedPaths, int *numDeletedPaths);
 
 	// ===========================================================================
 	//

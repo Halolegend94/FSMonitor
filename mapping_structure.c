@@ -123,7 +123,7 @@ int register_server_path(mappingStructure *str, int serverID, char *path){
 				 }
 			}
 	}else{
-		if(nb_add_bucket(start, serverID, path) == -1){
+		if(nb_add_bucket(start, serverID, path) == PROG_ERROR){
 			fprintf(stderr, "register_server_path: error while adding a bucket.\n");
 			return PROG_ERROR;
 		}
@@ -178,7 +178,8 @@ int unregister_server(mappingStructure *str, int sid, char **pathList, int count
 				  fprintf(stderr, "__first_scan: error while tokenizing the path.\n");
 				  return PROG_ERROR;
 			  }
-			  if(__unmark_server_subtree(root, tokens, 0, numTok - 1) == -1) return PROG_ERROR;
+			  if(__unmark_server_subtree(root, tokens, 0, numTok - 1) == PROG_ERROR)
+			  		return PROG_ERROR;
 		  }
 	  }
 	  if(__dfs_clean_subtree(root) == -1) return PROG_ERROR;
@@ -626,9 +627,13 @@ int __scan(fstNode *currentNode, char *path, mappingStructure *str, int monitore
 			}
 			if(!monitored){
 				if(!currentNode->isRoot && !is_directory(newPath)){ //the path has been deleted
+					unsigned long long tim = get_current_time();
+					if(tim == 0){
+						fprintf(stderr, "scan: error while getting the current time.\n");
+						return PROG_ERROR;
+					}
 					if(nb_push_notification(startBucket, pmm_offset_to_pointer(nList[i]->off_perms),
-							newPath, nList[i]->size, nList[i]->lastWriteTimestamp,
-									nList[i]->isDir, deletion) == -1){
+							newPath, nList[i]->size, tim, nList[i]->isDir, deletion) == -1){
 						fprintf(stderr, "scan: error while pushing notification\n");
 						return PROG_ERROR;
 					}
@@ -656,8 +661,10 @@ int __scan(fstNode *currentNode, char *path, mappingStructure *str, int monitore
 // ===========================================================================
 // get_notifications
 // ===========================================================================
-int get_notifications(mappingStructure *str, int sid, receivedNotification ***list, int *count){
-	 if(nb_read_notifications(pmm_offset_to_pointer(str->off_notifications), list, count, sid) == -1){
+int get_notifications(mappingStructure *str, int sid, receivedNotification ***list, int *count,
+	char ***deletedPaths, int *numDeletedPaths){
+	 if(nb_read_notifications(pmm_offset_to_pointer(str->off_notifications), list, count, sid,
+	  deletedPaths, numDeletedPaths) == -1){
 		 fprintf(stderr, "get_notifications: error while reading the notifications list.\n");
 		 return PROG_ERROR;
 	 }

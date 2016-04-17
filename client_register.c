@@ -26,7 +26,6 @@ int create_client_register(clientRegister **clReg){
 int cr_register_path(clientRegister *clReg, clientData *data, char *path, registrationMode mod){
    /*debug: the following things must be done outside this function*/
    if(is_dir_accessible(path) == 0){
-      printf("OPS\n");
       return PATH_NOT_ACCESSIBLE;
    }
    int retValue = cpt_add_client_registration(clReg->treeRoot, path, clReg->nodeList, data, mod);

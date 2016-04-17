@@ -8,8 +8,6 @@
    #include <stdlib.h>
    #include <string.h>
 
-   #define PROG_ERROR -1
-
    /*the following structure defines a linked list of notifications to be used inside the
    file mapping*/
    typedef struct _notification{
@@ -103,11 +101,13 @@
    //    -  list: a pointer that will contain a pointer to an array of receivedNotifications
    //    -  count: a pointer to an integer that will contain the number of the list elements
    //    -  serverID: the ID of the server that queries for the associated notifications
+   //    -  deletedPaths: a pointer that will point to a list of deleted paths monitored by the server
+   //    -  numDeletedPaths: the number of elements in deletedPaths
    // Returns 0 in case of success, -1 otherwise
    //
    // ===========================================================================
-   int nb_read_notifications(notificationsBucket *start, receivedNotification ***list, int *count, int serverID);
-
+   int nb_read_notifications(notificationsBucket *start, receivedNotification ***list, int *count,
+      int serverID, char ***deletedPaths, int *numDeletedPaths);
    // ===========================================================================
    //
    // nb_exists_bucket
