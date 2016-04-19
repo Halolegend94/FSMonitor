@@ -12,9 +12,9 @@ void *tcp_conn_handler(void *arg);
 int start_tcp_server(){
    pToThread p;
    int returnValue = create_thread(__tcp_server_function, NULL, &p);
-   if(returnValue == ERROR){
+   if(returnValue == PROG_ERROR){
       fprintf(stderr, "start_tcp_server: error while creating the thread.\n");
-      return ERROR;
+      return PROG_ERROR;
    }
 }
 
@@ -25,7 +25,7 @@ void *__tcp_server_function(void *arg){
    /*create a server socket. This function is the only one that accesses
    the tcpPort value, so no need for mutual exlusion.*/
    int s = create_server_socket(server.tcpPort, server.maxClientConnections, SOCK_STREAM);
-   if(s == ERROR){
+   if(s == PROG_ERROR){
       fprintf(stderr, "tcp_server_function: error while creating the server socket. Terminating the server.\n");
       terminate_server();
    }
@@ -34,7 +34,7 @@ void *__tcp_server_function(void *arg){
    while(1){
       clientData d;
       int c = accept_connection(s, &d);
-      if(c == ERROR){
+      if(c == PROG_ERROR){
          fprintf(stderr, "tcp_server_function: error while accepting a connection. Terminating the server.\n");
          closesocket(s);
          terminate_server();
@@ -49,7 +49,7 @@ void *__tcp_server_function(void *arg){
       param->data = d;
       param->sock = c;
       pToThread p;
-      if(create_thread(create_client_request_handler, (void *) param, &p) == ERROR){
+      if(create_thread(create_client_request_handler, (void *) param, &p) == PROG_ERROR){
          fprintf(stderr, "__tcp_server_function: error while creating the handler thread.\n");
          closesocket(s);
          closesocket(c);

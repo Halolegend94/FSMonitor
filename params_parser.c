@@ -118,3 +118,20 @@ int parse_params(int argc, char **argv, const char **pwv, int numPwvEntries, opt
    }
    return PROG_SUCCESS;
 }
+
+// ===========================================================================
+// free_optTokenList
+// ===========================================================================
+void free_optTokenList(optToken **list, int count){
+   int i;
+   for(i = 0; i < count; i++){
+      if(list[i]->isParam){
+         free(list[i]->name);
+         if(list[i]->value != NULL) free(list[i]->value);
+      }else{
+         free(list[i]->value);
+      }
+      free(list[i]);
+   }
+   free(list);
+}

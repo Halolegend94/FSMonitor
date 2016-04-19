@@ -40,4 +40,11 @@
    // ===========================================================================
    int parse_params(int argc, char **argv, const char **pwv, int numPwvEntries, optToken ***list, int *count);
 
+   // ===========================================================================
+   //
+   // free_optTokenList
+   // Description: free the memory occupied by a optToken array of count elements.
+   //
+   // ===========================================================================
+   void free_optTokenList(optToken **list, int count);
 #endif

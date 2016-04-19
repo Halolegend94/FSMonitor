@@ -58,7 +58,8 @@
    // and binds it to the first ip available (probably the wildcard ANY).
    // Params:
    //    -  port: a string that contains the port number which the socket must connect to;
-   //    -  maxConnections: maximum number of queued connection requests
+   //    -  maxConnections: maximum number of queued connection requests (if UDP is selected, this
+   //       is ignored.)
    //    -  type: the type of connection (SOCK_STREAM, SOCK_DGRAM)
    // Returns the socket file descriptor if successful, .1 in case of error.
    //
