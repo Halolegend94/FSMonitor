@@ -135,7 +135,7 @@ int __line(setting *set){
 		}
 		if(__curr_token.name != SEPARATOR){
 			fprintf(stderr, "Syntax error while parsing the settings file (line %d): a separator " \
-			"\":\" is missing.\n", __num_lines);
+			"\">\" is missing.\n", __num_lines);
 			return -1;
 		}
 		__streamEnded = __get_next_token();
@@ -214,9 +214,9 @@ int __get_next_token(){
 	while(__current != EOF){
 		if(__check_space(charsRead + 2, &currentMaxLen, &temp) == -1) return -1;
 
-		if(__current == ':'){							//SEPARATOR
+		if(__current == '>'){							//SEPARATOR
 			__curr_token.name = SEPARATOR;
-			__curr_token.value = ":";
+			__curr_token.value = ">";
 			__current = fgetc(__pFileSettings);
 			return 0;
 
@@ -237,12 +237,12 @@ int __get_next_token(){
 			__curr_token.value = temp;
 			return 0;
 
-		}else if(isdigit(__current)){					//NUMBER
+		}else if(isdigit(__current) || __current == ':'){					//NUMBER or IP
 			do{
 				temp[charsRead++] = __current;
 				if(__check_space(charsRead + 2, &currentMaxLen, &temp) == -1) return -1; //if there is not sufficient space
 				__current = fgetc(__pFileSettings);
-			}while(isdigit(__current));
+			}while(isdigit(__current) || __current == ':' || __current == '.');
 			temp[charsRead] = '\0';
 		__curr_token.name = NUMBER;
 			__curr_token.value = temp;

@@ -12,7 +12,6 @@
    #include "myfile.h"
    #include "thread.h"
    #include "time_utilities.h"
-   ddd
 
    typedef struct _serverStructure{
        int ID;

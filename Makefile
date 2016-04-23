@@ -41,11 +41,15 @@ server-win : server_monitor.c win\utilities.c mem_management.obj filesystree.obj
 		mapping_structure.obj mapping.obj myfile.obj settings_parser.obj syncmapping.obj \
 		notifications_bucket.obj utilities.obj time_utilities.obj received_notification.obj \
 		signal_handler.obj server_commons.obj
-#	 $(WCLEAN) *.obj
 
+client-win : client.c settings_parser.obj params_parser.obj networking.obj thread.obj
+	$(WC) $(WNAME)"client" client.c settings_parser.obj params_parser.obj networking.obj thread.obj
 ####################################################################################################
 # platform indipendent
 ####################################################################################################
+
+params_parser.obj : params_parser.c
+	$(WC) $(WOBJ) params_parser.c
 
 mapping_structure.obj : mapping_structure.c
 	$(WC) $(WOBJ) mapping_structure.c
@@ -109,9 +113,14 @@ server-linux : server_monitor.c mem_management.o filesystree.o mapping_structure
 		mapping_structure.o mapping.o myfile.o settings_parser.o syncmapping.o notifications_bucket.o \
 		time_utilities.o received_notification.o signal_handler.o server_commons.o $(LLINK)
 
+client-linux : client.c settings_parser.o params_parser.o networking.o thread.o
+	$(LC) $(LNAME)"client" client.c settings_parser.o params_parser.o networking.o thread.o $(LLINK)
 ####################################################################################################
 # platform indipendent
 ####################################################################################################
+
+params_parser.o : params_parser.c
+	$(LC) $(LOBJ) params_parser.c
 
 mapping_structure.o : mapping_structure.c
 	$(LC) $(LOBJ) mapping_structure.c

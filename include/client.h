@@ -11,7 +11,7 @@
 
    #define PROG_ERROR -1
    #define PROG_SUCCESS 0
-   
+
    typedef struct _clientStruct {
       char *tcpPort;
       char *udpPort;
@@ -28,7 +28,7 @@
    // ===========================================================================
    // execute_command
    // ===========================================================================
-   int execute_command(int w, optToken *comm);
+   int execute_command(optToken *comm);
 
 
 #endif
