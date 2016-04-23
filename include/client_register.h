@@ -4,14 +4,12 @@
    #include <stdio.h>
    #include <stdlib.h>
    #include <string.h>
-   #include "cr_lock.h"
    #include "client_path_tree.h"
    #include "client_node_list.h"
    #include "common_definitions.h"
    #include "myfile.h"
 
    typedef struct _clientRegister{
-      pCRLock lock;
       clientNodeList *nodeList;      //client node list
       pathNode *treeRoot;    //tree of registered path
    } clientRegister;

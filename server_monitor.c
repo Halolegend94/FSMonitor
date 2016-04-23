@@ -18,11 +18,17 @@ int main(int argc, char **argv){
        terminate_server();
    }
 
+   //create the threadlock
+   if(create_cr_lock(&server->threadLock) == -1){
+      fprintf(stderr, "serverMonitor: error while creating the threadLock.\n");
+      terminate_server();
+   }
+
    //Start the TCP server
-   /*if(start_tcp_server() == PROG_ERROR){
+   if(start_tcp_server() == PROG_ERROR){
       fprintf(stderr, "serverMonitor: error while starting the tcp server.\n");
       terminate_server();
-   }*/
+   }
 
    printf("Server (ID=%u) is active!\n", server.ID);
 
@@ -105,31 +111,42 @@ void *ctrlc_handler(void *p){
 // ===========================================================================
 void check_params(int argc, char **argv){
    if(argc != 2){
-      fprintf(stderr, "serverMonitor: you need to pass the initial path to monitor.\n");
+      fprintf(stderr, "serverMonitor: you must provide the initial path to monitor.\n");
       exit(0);
    }
+   char *path;
    if(is_absolute_path(argv[1]) == 0){
-      fprintf(stderr, "serverMonitor: the path must be expressed as absolute path.\n");
-      exit(0);
+      char *temp = get_current_directory();
+      if(!temp){
+         fprintf(stderr, "serverMonitor: error while getting the current directory.\n");
+         exit(0);
+      }
+      path = concatenate_path(temp, argv[1]);
+      if(!path){
+         fprintf(stderr, "serverMonitor: error while concatenation a string.\n");
+         exit(0);
+      }
+   }else{
+      path = malloc(sizeof(char) * (strlen(argv[1]) +1));
+      if(!path){
+         fprintf(stderr, "serverMonitor: error while allocating memory.\n");
+         exit(0);
+      }
+      strcpy(path, argv[1]);
    }
-   if(is_directory(argv[1]) == 0){
+   if(is_directory(path) == 0){
       fprintf(stderr, "serverMonitor: the specified path is not a valid directory.\n");
       exit(0);
    }
-   int len = strlen(argv[1]);
-   if(argv[1][len-1] == '\\' || argv[1][len-1] == '/') argv[1][len-1] = '\0';
+   int len = strlen(path);
+   if(path[len-1] == '\\' || path[len-1] == '/') path[len-1] = '\0';
 
    server.serverPaths = malloc(sizeof(char *));
    if(!(server.serverPaths)){
       fprintf(stderr, "serverMonitor: error while allocating memory.\n");
       exit(0);
    }
-   server.serverPaths[0] = malloc(sizeof(char) * (strlen(argv[1]) + 1));
-   if(!(server.serverPaths[0])){
-      fprintf(stderr, "serverMonitor: error while allocating memory.\n");
-      exit(0);
-   }
-   strcpy(server.serverPaths[0], argv[1]);
+   server.serverPaths[0] = path;
    server.serverPathsCount = 1;
 }
 

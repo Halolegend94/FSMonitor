@@ -9,9 +9,11 @@
    #include "mem_management.h"
    #include "mapping.h"
    #include "syncmapping.h"
+   #include "client_register.h"
    #include "myfile.h"
    #include "thread.h"
    #include "time_utilities.h"
+   #include "cr_lock.h"
 
    typedef struct _serverStructure{
        int ID;
@@ -29,8 +31,10 @@
        char *udpPort;                //the udp port where the server sends uodates
        int maxClientConnections;     //the number of simultaneous client connections that the socket will handle
        unsigned long long startUpTime; //the time the server was started
-       //TODO: Clients list
+       pCRLock threadLock;           //lock to sync accesses to shared resources inside the single process
+       clientRegister *clRegister;    //the data structure with client registrations.
    } serverStructure;
+
 
    // ===========================================================================
    //

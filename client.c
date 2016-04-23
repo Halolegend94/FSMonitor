@@ -115,22 +115,29 @@ int execute_command(optToken *comm){
       return -1;
    }
    /*wait for response*/
+   fprintf(stdout, "Waiting for response from the server..\n");
    free(buffer);
-   buffer = malloc(sizeof(char) * 7); //we expect just the error code, so this is enough
+   buffer = malloc(sizeof(char) * 4); //we expect just the error code, so this is enough
    if(!buffer){
       fprintf(stderr, "execute_command: error while allocating memory.\n");
       return -1;
    }
-   if(recv(s, buffer, sizeof(char) * 7, 0) == -1){
+   if(receive_data(s, buffer, sizeof(char) * 4) == -1){
       fprintf(stderr, "execute_command: error while allocating memory.\n");
       return -1;
    }
    closesocket(s);
    buffer[3] = '\0';
    /*check return code*/
-   if(strcmp(buffer, "200") == 0) return 0;
+   if(strcmp(buffer, "200") == 0) {
+      fprintf(stdout, "Command executed successfully!.\n");
+      return 0;
+   }
    else if(strcmp(buffer, "400") == 0){
-      fprintf(stdout, "Error 400: the desired path is not among the monitored ones.\n");
+      if(comm->name[0] == 'r' || comm->name[0] == 'r')
+         fprintf(stdout, "Error 400: the desired path is not among the monitored ones.\n");
+      else
+         fprintf(stdout, "Error 400: you were not registered for the specified path.\n");
       return -1;
    }else if(strcmp(buffer, "404") == 0){
       fprintf(stdout, "Error 404: path not found.\n");
@@ -138,8 +145,11 @@ int execute_command(optToken *comm){
    }else if(strcmp(buffer, "403") == 0){
       fprintf(stdout, "Error 403: path not accessible.\n");
       return -1;
+   }else if(strcmp(buffer, "300") == 0){
+      fprintf(stdout, "Error 300: server internal error.\n");
+      return -1;
    }else{
-      fprintf(stderr, "execute_command: response from server is not valid.\n");
+      fprintf(stdout, "execute_command: response from server is not valid.\n");
       return -1;
    }
    free(buffer);

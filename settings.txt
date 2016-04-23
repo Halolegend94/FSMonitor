@@ -1,6 +1,6 @@
-timeout:7
-mapName:mapping
-mapSize:600 #the unit is 1MB
-tcpPort:8080
-udpPort:9090
-maxConn:20 #maximum number of connections, must be >= 1
+timeout > 7
+mapName > mapping
+mapSize > 600 #the unit is 1MB
+tcpPort > 8080
+udpPort > 9090
+maxConn > 20 #maximum number of connections, must be >= 1

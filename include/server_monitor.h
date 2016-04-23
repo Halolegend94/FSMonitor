@@ -4,6 +4,7 @@
    #include "server_commons.h"
    #include "signal_handler.h"
    #include "networking.h"
+   #include "tcp_server.h"
 
    //GLOBAL VARIABLES: serverStructure server
    #define DELAY_TOLLERANCE_FACTOR 1.3

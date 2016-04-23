@@ -33,14 +33,15 @@ LLINK=-lm
 #
 ####################################################################################################
 
-server-win : server_monitor.c win\utilities.c mem_management.obj filesystree.obj mapping_structure.obj \
+server-win : server_monitor.c tcp_server.c win\utilities.c mem_management.obj filesystree.obj mapping_structure.obj \
 	mapping.obj myfile.obj settings_parser.obj syncmapping.obj notifications_bucket.obj utilities.obj \
 	daemon.obj thread.obj time_utilities.obj received_notification.obj signal_handler.obj \
-	server_commons.obj
-	$(WC) $(WNAME)"server" server_monitor.c mem_management.obj filesystree.obj daemon.obj thread.obj  \
+	server_commons.obj client_register.obj client_node_list.obj client_path_tree.obj linked_list.obj
+	$(WC) $(WNAME)"server" server_monitor.c tcp_server.c mem_management.obj filesystree.obj daemon.obj thread.obj  \
 		mapping_structure.obj mapping.obj myfile.obj settings_parser.obj syncmapping.obj \
 		notifications_bucket.obj utilities.obj time_utilities.obj received_notification.obj \
-		signal_handler.obj server_commons.obj
+		signal_handler.obj server_commons.obj client_register.obj client_node_list.obj \
+		client_path_tree.obj linked_list.obj
 
 client-win : client.c settings_parser.obj params_parser.obj networking.obj thread.obj
 	$(WC) $(WNAME)"client" client.c settings_parser.obj params_parser.obj networking.obj thread.obj
@@ -48,11 +49,23 @@ client-win : client.c settings_parser.obj params_parser.obj networking.obj threa
 # platform indipendent
 ####################################################################################################
 
+client_register.obj : client_register.c
+	$(WC) $(WOBJ) client_register.c
+
+client_node_list.obj : client_node_list.c
+	$(WC) $(WOBJ) client_node_list.c
+
+client_path_tree.obj : client_path_tree.c
+	$(WC) $(WOBJ) client_path_tree.c
+
 params_parser.obj : params_parser.c
 	$(WC) $(WOBJ) params_parser.c
 
 mapping_structure.obj : mapping_structure.c
 	$(WC) $(WOBJ) mapping_structure.c
+
+networking.obj : networking.c
+	$(WC) $(WOBJ) networking.c
 
 filesystree.obj : filesystree.c
 	$(WC) $(WOBJ) filesystree.c
@@ -75,6 +88,8 @@ mem_management.obj : mem_management.c
 settings_parser.obj : settings_parser.c
 	$(WC) $(WOBJ) settings_parser.c
 
+linked_list.obj : linked_list.c
+	$(WC) $(WOBJ) linked_list.c
 
 ####################################################################################################
 # platform dependent
@@ -106,18 +121,35 @@ thread.obj : "win\thread.c"
 #
 ####################################################################################################
 
-server-linux : server_monitor.c mem_management.o filesystree.o mapping_structure.o \
+server-linux : server_monitor.c tcp_server.c mem_management.o filesystree.o mapping_structure.o \
 	mapping.o myfile.o settings_parser.o syncmapping.o notifications_bucket.o thread.o daemon.o \
-	time_utilities.o received_notification.o signal_handler.o server_commons.o
-	$(LC) $(LNAME)"server" server_monitor.c mem_management.o filesystree.o thread.o daemon.o \
+	time_utilities.o received_notification.o signal_handler.o server_commons.o client_register.o \
+	networking.o client_node_list.o client_path_tree.o linked_list.o
+	$(LC) $(LNAME)"server" server_monitor.c tcp_server.c mem_management.o filesystree.o thread.o daemon.o \
 		mapping_structure.o mapping.o myfile.o settings_parser.o syncmapping.o notifications_bucket.o \
-		time_utilities.o received_notification.o signal_handler.o server_commons.o $(LLINK)
+		time_utilities.o received_notification.o signal_handler.o server_commons.o client_register.o\
+		networking.o client_node_list.o client_path_tree.o linked_list.o $(LLINK)
 
 client-linux : client.c settings_parser.o params_parser.o networking.o thread.o
 	$(LC) $(LNAME)"client" client.c settings_parser.o params_parser.o networking.o thread.o $(LLINK)
 ####################################################################################################
 # platform indipendent
 ####################################################################################################
+
+linked_list.o : linked_list.c
+	$(LC) $(LOBJ) linked_list.c
+
+networking.o : networking.c
+	$(LC) $(LOBJ) networking.c
+
+client_register.o : client_register.c
+	$(LC) $(LOBJ) client_register.c
+
+client_node_list.o : client_node_list.c
+	$(LC) $(LOBJ) client_node_list.c
+
+client_path_tree.o : client_path_tree.c
+	$(LC) $(LOBJ) client_path_tree.c
 
 params_parser.o : params_parser.c
 	$(LC) $(LOBJ) params_parser.c
@@ -145,6 +177,7 @@ mem_management.o : mem_management.c
 
 settings_parser.o : settings_parser.c
 	$(LC) $(LOBJ) settings_parser.c
+
 
 ####################################################################################################
 # platform dependent
