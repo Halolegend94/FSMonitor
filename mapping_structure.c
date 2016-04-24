@@ -116,19 +116,54 @@ int register_server_path(mappingStructure *str, int serverID, char *path){
 			if(buck == NULL){
 				return PATH_ALREADY_MONITORED;
 			}else{
-				/*need to update the bucket's associated path*/
-				 if(nb_update_bucket_path(buck, path) == PROG_ERROR){
-					 fprintf(stderr, "register_server_path: error while updating a bucket path.\n");
-					 return PROG_ERROR;
-				 }
+				/*need to update the bucket's associated path and change the marked node in the tree.
+				if it is not monitored by other servers*/
+				char *oPath = malloc(sizeof(char) * (strlen(pmm_offset_to_pointer(buck->off_path)) + 1));
+				if(!oPath){
+					fprintf(stderr, "register_server_path: error while allocating memory.\n");
+					return PROG_ERROR;
+				}
+				strcpy(oPath, pmm_offset_to_pointer(buck->off_path));
+				if(nb_update_bucket_path(buck, path) == PROG_ERROR){
+					fprintf(stderr, "register_server_path: error while updating a bucket path.\n");
+					return PROG_ERROR;
+				}
+				//check if the path is monitored by other servers
+				start = pmm_offset_to_pointer(start->off_next);
+				int found = 0;
+				while(1){
+					if(strcmp(oPath, pmm_offset_to_pointer(start->off_path)) == 0){
+						found = 1;
+					}
+					if(start->off_next == 0) break;
+					start = pmm_offset_to_pointer(start->off_next);
+				}
+				if(!found){
+					int lenP = strlen(oPath);
+					oPath[lenP - 1] = '\0'; //delete the last "/"
+					char **tokens;
+					int numTok;
+					if(tokenize_path(oPath, &tokens, &numTok) == -1){
+						fprintf(stderr, "__first_scan: error while tokenizing the path.\n");
+						return PROG_ERROR;
+				 	}
+				 	if(__unmark_server_subtree(pmm_offset_to_pointer(str->off_fileSystemTree),
+						tokens, 0, numTok - 1) == PROG_ERROR)
+						return PROG_ERROR;
+			 		free(oPath);
+					int i;
+					for(i = 0; i < numTok; i++) free(tokens[i]);
+					free(tokens);
+				}
+				return PATH_UPDATED;
 			}
 	}else{
 		if(nb_add_bucket(start, serverID, path) == PROG_ERROR){
 			fprintf(stderr, "register_server_path: error while adding a bucket.\n");
 			return PROG_ERROR;
 		}
+		return PROG_SUCCESS;
 	}
-	return 0;
 }
 
 // ===========================================================================
@@ -144,14 +179,12 @@ int unregister_server(mappingStructure *str, int sid, char **pathList, int count
 			fprintf(stderr, "unregister_server: error while removing a bucket.\n");
 			return PROG_ERROR;
 		}
-		//we need to update the offset to the start pointer. Maybe it has been changed in nb_remove_bucket
-		str->off_notifications = pmm_pointer_to_offset(start);
 	}
 	/*now we check if those paths are monitored by other servers. If not, we remove them from the
 	filesystem tree (only the branches that are not monitored by others)*/
 	short monitored; //used to tell if the current path is monitored by another server
 	for(i = 0; i < count; i++){
-		  notificationsBucket *current = start;
+		  notificationsBucket *current = pmm_offset_to_pointer(start->off_next);
 		  monitored = 0;
 		  if(start != NULL){
 			  char *tPath = concatenate_path(pathList[i], "");

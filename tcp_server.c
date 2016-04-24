@@ -85,15 +85,6 @@ void *client_request_handler(void *p){
 
    CRHParams *params = (CRHParams *)p;
 
-   /*things to do!
-   check if the path is valid
-   get the lock
-   execute command
-   release lock
-   reply to client
-   close thread*/
-
-
    char *stringReceived = malloc(sizeof(char) * BUFFSIZE);
    if(!stringReceived){
       closesocket(params->sock);
@@ -106,7 +97,9 @@ void *client_request_handler(void *p){
    int charsRead = 0;
    int buffIndex = 0;
 
-   /*first, we get the entire text sent, terminated with a newline.*/
+   /********************************
+   STEP 1: first, we get the entire text sent, terminated with a newline.
+   *********************************/
    while(1){
       int charsReceived = recv(params->sock, buffer, BUFFSIZE, 0);
 
@@ -133,7 +126,9 @@ void *client_request_handler(void *p){
          break;
       }
    }
-   /*now we get the command to execute from the first part of the string.*/
+   /************************************************
+   Step 2: now we get the command to execute from the first part of the string.
+   ************************************************/
    char *command = malloc(sizeof(char) * 10); //nine chars + \0 are enough
    if(!command){
       closesocket(params->sock);
@@ -172,15 +167,16 @@ void *client_request_handler(void *p){
    else commandCode = -1;
 
    free(command);
-   if(command == -1){
+   if(commandCode == -1){
       fprintf(stderr, "client_request_handler: command not valid.\n");
       if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
       closesocket(params->sock);
       return NULL;
    }
    /**********************************************************
-   *****part 2. Recognize and execute command*/
-   if(commandCode != DISC){ //checks on directory
+   Step 3: Recognize and execute command
+   ***********************************************************/
+   if(commandCode != DISC){
       //check if the directory is expressed as absolute path. If not, build the absolute path
       if(!is_absolute_path(path)){
          path = convert_abs_path(path);
@@ -215,25 +211,162 @@ void *client_request_handler(void *p){
    }
    //to check for disc, we must enter the critical section
    /*specific checks, need the lock*/
-   if(acquire_cr_lock(pCRLock lock) == -1){
+   if(acquire_cr_lock(server.threadLock) == PROG_ERROR){
       fprintf(stderr, "client_request_handler: error while acquiring the threadlock.\n");
       if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
       closesocket(params->sock);
       terminate_server();
    }
-   /*CRITICAL SECION*/
+   /**********CRITICAL SECTION***************/
    if(commandCode == DISC){
-      /*need to check if the client is already registered to that path.*/
-      //TODO, create a function in client_path_tree
-   }else{
-      int ricorsive = (command == ADDP || command == INFO) ? 1 : 0;
-      int add = (command == ADDP || command == ADDNP) ? 1 : 0;
-      if(add){
-         //TODO: check if the path is already monitored
-         //TODO: add path to the server
-      }else{
-         //TODO: check if the path is not monitored
+      int retValue =  cr_unregister_path(server.clRegister, params->data, path);
+      /*****END CRITICAL SECTION************/
+      if(release_cr_lock(server.threadLock) == PROG_ERROR){
+         fprintf(stderr, "client_request_handler: error while releasing the threadlock.\n");
+         if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
+         closesocket(params->sock);
+         terminate_server();
       }
-   }
+      if(retValue == PROG_ERROR){
+         fprintf(stderr, "client_request_handler: error while removing a registration.\n");
+         if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
+         closesocket(params->sock);
+         terminate_server();
+      }else if(retValue == PATH_NOT_REGISTERED){
+         if(send_data(params->sock, "400", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
+         closesocket(params->sock);
+         free(params->data->hostName);
+         free(params->data);
+         free(params);
+         free(path);
+         return NULL;
+      }else{
+         //PROG_SUCCESS
+         if(send_data(params->sock, "200", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
+         closesocket(params->sock);
+         free(params->data->hostName);
+         free(params->data);
+         free(params);
+         free(path);
+         return NULL;
+      }
+   }else{
+      int recurs = (commandCode == ADDP || commandCode == INFO) ? 1 : 0;
+      int add = (commandCode == ADDP || commandCode == ADDPNR) ? 1 : 0;
+      if(add){
+         //add the path to the tree
+         //=================SYNCMAPPING LOCK============================
 
+         if(syncmapping_acquire(server.mapLock) == PROG_ERROR){
+               fprintf(stderr, "client_request_handler: error while acquiring the syncmapping lock.\n");
+               if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
+               closesocket(params->sock);
+               terminate_server();
+         }
+         int regValue = register_server_path(server.structure, server.ID, path);
+         if(syncmapping_release(server.mapLock) == PROG_ERROR){
+            fprintf(stderr, "client_request_handler: error while releasing the syncmapping lock.\n");
+            if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
+            closesocket(params->sock);
+            cs_terminate_server();
+         }
+         //===============END SYNCMAPPING LOCK============================
+
+         if(regValue == PATH_NOT_ACCESSIBLE){
+            if(send_data(params->sock, "403", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
+            closesocket(params->sock);
+            free(params->data->hostName);
+            free(params->data);
+            free(params);
+            free(path);
+
+            if(release_cr_lock(server.threadLock) == PROG_ERROR){
+               fprintf(stderr, "client_request_handler: error while releasing the threadlock.\n");
+               terminate_server();
+            }
+            return NULL;
+         }else if(regValue == PROG_ERROR){
+            fprintf(stderr, "client_request_handler: error while adding the path.\n");
+            if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
+            closesocket(params->sock);
+            terminate_server();
+         }else if(regValue == PATH_UPDATED){
+            int i;
+            for(i = 0; i < server.serverPathsCount; i++){
+               if(is_prefix(path, server.serverPaths[i])){
+                  server.serverPaths[i] = realloc(server.serverPaths[i], sizeof(char) * (strlen(path)+1));
+                  if(!server.serverPaths[i]){
+                     fprintf(stderr, "client_request_handler: error while allocating memory.\n");
+                     if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
+                     closesocket(params->sock);
+                     terminate_server();
+                  }
+                  strcpy(server.serverPaths[i], path);
+               }
+            }
+         }else if(regValue == PROG_SUCCESS){
+            //add the path to the list
+            server.serverPathsCount++;
+            server.serverPaths = realloc(server.serverPaths, sizeof(char *) * server.serverPathsCount);
+            if(!server.serverPaths){
+               fprintf(stderr, "client_request_handler: error while allocating memory.\n");
+               if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
+               closesocket(params->sock);
+               terminate_server();
+            }
+            server.serverPaths[server.serverPathsCount - 1] = malloc(sizeof(char) * (strlen(path) + 1));
+            if(!(server.serverPaths[server.serverPathsCount - 1])){
+               fprintf(stderr, "client_request_handler: error while allocating memory.\n");
+               if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
+               closesocket(params->sock);
+               terminate_server();
+            }
+            strcpy(server.serverPaths[server.serverPathsCount - 1], path);
+         }
+      }else{
+         //check if the path is monitored
+         int i;
+         int found = 0;
+         for(i = 0; i < server.serverPathsCount; i++){
+            if(is_prefix(server.serverPaths[i], path)){
+               found = 1;
+               break;
+            }
+         }
+         if(!found){
+            if(send_data(params->sock, "400", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
+            closesocket(params->sock);
+            free(params->data->hostName);
+            free(params->data);
+            free(params);
+            free(path);
+            if(release_cr_lock(server.threadLock) == PROG_ERROR){
+               fprintf(stderr, "client_request_handler: error while releasing the threadlock.\n");
+               terminate_server();
+            }
+            return NULL;
+         }
+      }
+
+      //add the registration to the client register
+      if(cr_register_path(server.clRegister, params->data, path, recurs ? RECURSIVE : NONRECURSIVE) == PROG_ERROR){
+         fprintf(stderr, "client_request_handler: error while registering a client.\n");
+         if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
+         closesocket(params->sock);
+         terminate_server();
+      }
+
+      //it's all ok
+      if(send_data(params->sock, "200", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
+      closesocket(params->sock);
+      free(params->data->hostName);
+      free(params->data);
+      free(params);
+      free(path);
+      if(release_cr_lock(server.threadLock) == PROG_ERROR){
+         fprintf(stderr, "client_request_handler: error while releasing the threadlock.\n");
+         terminate_server();
+      }
+      return NULL; //this thread will die
+   }
 }

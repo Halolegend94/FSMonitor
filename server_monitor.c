@@ -19,7 +19,7 @@ int main(int argc, char **argv){
    }
 
    //create the threadlock
-   if(create_cr_lock(&server->threadLock) == -1){
+   if(create_cr_lock(&server.threadLock) == -1){
       fprintf(stderr, "serverMonitor: error while creating the threadLock.\n");
       terminate_server();
    }

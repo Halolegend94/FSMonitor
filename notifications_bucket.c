@@ -342,7 +342,7 @@ int nb_exists_bucket(notificationsBucket *start, int serverID, char *path, notif
      fprintf(stderr, "nb_exists_bucket: error while concatenating a path.\n");
      return PROG_ERROR;
    }
-   notificationsBucket *current = start;
+   notificationsBucket *current = pmm_offset_to_pointer(start->off_next);
 	do{
       char *mpath = pmm_offset_to_pointer(current->off_path);
       if(current->serverID == serverID){

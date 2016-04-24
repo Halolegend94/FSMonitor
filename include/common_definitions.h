@@ -14,5 +14,5 @@
    #define PATH_NOT_REGISTERED -3
    #define PATH_NOT_FOUND -4
    #define PATH_ALREADY_MONITORED -5
-
+   #define PATH_UPDATED -6
 #endif
