@@ -37,57 +37,119 @@ int main(int argc, char **argv){
    //**********************    MAIN LOOP   ********************************************
    mappingStructure *structure = server.structure; //mapping structure, for easier access
    while(1){
-         if(thread_sleep(server.timeout) == -1) //signal received..
-            while(1); //wait for imminent termination
+      if(thread_sleep(server.timeout) == -1) //signal received..
+         while(1); //wait for imminent termination
 
-         syncmapping_acquire(server.mapLock); //Begin critical section
-         /*the following check is done to avoid race conditions:
-            - Signal ctrl+c is received and the handler executes, leave the critical section,
-            and it is stopped before it can terminate the process.
-            - This thread (monitor) enters the critical section and accesses the mapping
-            that has been deleted. ERROR.
-        */
-         if(server.isActive == 0){
-             syncmapping_release(server.mapLock);
-             break;
-         }
-         /*some checks first. If the daemon is signaled to be dead, start a new one.
-         /*Also, we need to see if the deamon is inactive for a long period of time.
-         This could mean that the process which owned it has been killed. If, instead, it is
-         still alive, then it will kill itself once noticed the new daemon.*/
-         unsigned long long current_time = get_current_time();
-         if(current_time == 0){
-            fprintf(stderr, "serverMonitor: error while getting the current time. Aborting execution.\n");
+      /**************************************************
+      part 1: get notification from th mapping
+      ***************************************************/
+      if(syncmapping_acquire(server.mapLock) == -1){
+         fprintf(stderr, "serverMonitor: error while acquiring the mapLock. Terminating the server.\n");
+         exit(0); //just shutdown the server, we cannot clean the mapping whitout mutual exclusion
+      }
+      //Begin critical section
+      /*the following check is done to avoid race conditions:
+         - Signal ctrl+c is received and the handler executes, leave the critical section,
+         and it is stopped before it can terminate the process.
+         - This thread (monitor) enters the critical section and accesses the mapping
+         that has been deleted. ERROR.
+     */
+      if(server.isActive == 0){
+          syncmapping_release(server.mapLock);
+          break;
+      }
+      /*some checks first. If the daemon is signaled to be dead, start a new one.
+      /*Also, we need to see if the deamon is inactive for a long period of time.
+      This could mean that the process which owned it has been killed. If, instead, it is
+      still alive, then it will kill itself once noticed the new daemon.*/
+      unsigned long long current_time = get_current_time();
+      if(current_time == 0){
+         fprintf(stderr, "serverMonitor: error while getting the current time. Aborting execution.\n");
+         cs_terminate_server();
+      }
+      if(structure->daemonServer == -1 || (server.ID != structure->daemonServer &&
+         get_relative_time(current_time, structure->lastUpdate) > (structure->refreshTime * DELAY_TOLLERANCE_FACTOR))){
+         printf("Creating a new daemon..\n");
+         if(create_daemon() == -1){
+            fprintf(stderr, "serverMonitor: error while creating the daemon. Aborting execution..\n");
             cs_terminate_server();
          }
-         if(structure->daemonServer == -1 || (server.ID != structure->daemonServer &&
-            get_relative_time(current_time, structure->lastUpdate) > (structure->refreshTime * DELAY_TOLLERANCE_FACTOR))){
-            printf("Creating a new daemon..\n");
-            if(create_daemon() == -1){
-               fprintf(stderr, "serverMonitor: error while creating the daemon. Aborting execution..\n");
-               cs_terminate_server();
+         structure->daemonServer = server.ID; //this server is the owner of the daemon
+      }
+
+      //Now we can get notifications
+      receivedNotification **notificationsList;
+      int numNotifications;
+      char **deletedPaths;
+      int numDeletedPaths;
+      if(get_notifications(server.structure, server.ID, &notificationsList, &numNotifications, &deletedPaths, &numDeletedPaths) == -1){
+         fprintf(stderr, "serverMonitor: error while getting the notifications list. Aborting execution..\n");
+         cs_terminate_server();
+      }
+
+      if(syncmapping_release(server.mapLock) == PROG_ERROR){
+         fprintf(stderr, "serverMonitor: error while releasing the mapLock.\n");
+         cs_terminate_server();
+      }
+
+      /***************************************************************
+      send notifications to clients
+      ****************************************************************/
+      if(acquire_cr_lock(server.threadLock) == PROG_ERROR){
+         fprintf(stderr, "serverMonitor: error while acquiring the threadLock.\n");
+         terminate_server();
+      }
+      //check if there are monitored paths that has been deleted
+      int i; //counter
+      if(numDeletedPaths > 0){
+         char **newPathList = malloc(sizeof(char *) * (server.serverPathsCount - numDeletedPaths));
+         if(!newPathList){
+            fprintf(stderr, "serverMonitor: error while allocating memory.\n");
+            terminate_server();
+         }
+         int j,k, found;
+         for(i = 0, k = 0; i < server.serverPathsCount; i++){
+            found = 0;
+            for(j = 0; j < numDeletedPaths; j++){
+               if(strcmp(server.serverPaths[i], deletedPaths[j]) == 0){
+                  found = 1;
+                  break;
+               }
             }
-            structure->daemonServer = server.ID; //this server is the owner of the daemon
+            if(found){ //this one has not been deleted, so we copy it into the new array
+               newPathList[k++] = server.serverPaths[i];
+            }else{
+               free(server.serverPaths[i]); //has been deleted
+            }
          }
-
-         //Now we can get notifications
-         receivedNotification **notificationsList;
-         int count;
-         char **deletedPaths;
-         int numDeletedPaths;
-         if(get_notifications(server.structure, server.ID, &notificationsList, &count, &deletedPaths, &numDeletedPaths) == -1){
-            fprintf(stderr, "serverMonitor: error while getting the notifications list. Aborting execution..\n");
-            cs_terminate_server();
+         free(server.serverPaths);
+         server.serverPaths = newPathList;
+         for(i = 0; i < numDeletedPaths; i++) free(deletedPaths[i]);
+         free(deletedPaths);
+      }
+      //now put in queue all the received notifications.
+      for(i = 0; i < numNotifications; i++){
+         char *strNot = get_string_representation(notificationsList[i], server.startUpTime);
+         if(!strNot){
+            fprintf(stderr, "serverMonitor: error while getting the string representation of a notification.\n");
+            terminate_server();
          }
-         //send notifications to clients
-         int i;
-         for(i = 0; i < count; i++){
-            printf("%s\n", get_string_representation(notificationsList[i], server.startUpTime));
+         if(cpt_push_notification((server.clRegister)->treeRoot, notificationsList[i], strNot) == PROG_ERROR){
+            fprintf(stderr, "serverMonitor: error while adding a notification to a client's queue.\n");
+            terminate_server();
          }
-         printf("num %d\n", numDeletedPaths);
-         for(i = 0; i < numDeletedPaths;i++) printf("delted: %s\n", deletedPaths[i]);
-         syncmapping_release(server.mapLock);
-     }
+      }
+      //send all the notifications
+      if(cnl_send_notifications((server.clRegister)->nodeList, server.udpPort) == PROG_ERROR){
+         fprintf(stderr, "serverMonitor: error while sending notifications to clients.\n");
+         terminate_server();
+      }
+      //release Lock
+      if(release_cr_lock(server.threadLock) == PROG_ERROR){
+         fprintf(stderr, "serverMonitor: error while releasing the threadlock.\n");
+         terminate_server();
+      }
+   }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////

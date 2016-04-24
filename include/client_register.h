@@ -15,15 +15,6 @@
    } clientRegister;
 
 
-   typedef enum _clientRequestType {INFO, ADDP, DISC, INNR} clientRequestType;
-
-
-   /*some rules:
-      1) in general, try to add the path to the tree. In case of success, use the pointer
-      to the client bucket list to find the client bucket or create a new one.
-
-      addPath*/
-
    // ===========================================================================
    // create_client_register
    // ===========================================================================

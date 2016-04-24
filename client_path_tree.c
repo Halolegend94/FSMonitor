@@ -293,30 +293,10 @@ int cpt_remove_client_registration(pathNode *root, char *path, clientNodeList *c
 }
 
 // ===========================================================================
-// __cpt_print_tree_rec [SUPPPORT FUNCTION]
-// ===========================================================================
-void __cpt_print_tree_rec(pathNode *node, int lev){
-   int i;
-   for(i = 0; i < node->numChildren; i++){
-      printf("%*s| - Name: %s, numReg: %d\n", lev, " ", node->children[i]->name, node->children[i]->numRegistrations);
-      __cpt_print_tree_rec(node->children[i], lev + 3); //recursive call
-   }
-}
-
-// ===========================================================================
-// cpt_print_tree
-// ===========================================================================
-void cpt_print_tree(pathNode *root){
-   printf("_________CLIENT PATH TREE______________\n\n");
-   __cpt_print_tree_rec(root, 1);
-}
-
-
-// ===========================================================================
 // cpt_delete_subtree
 // ===========================================================================
 int cpt_delete_subtree(pathNode *node, char *str){
-      int i; 
+      int i;
       for(i = 0; i < node->numChildren; i++){
             cpt_delete_subtree(node->children[i], str);
       }
@@ -354,28 +334,28 @@ int cpt_push_notification(pathNode *root, receivedNotification *not, char *strin
       int maxInternIndex = maxIndex - 1;
       /*now we get to the tree node corresponding to not->path, if any.
       During the visit, it must be checked whether there is a node along the
-      path that presents a client which is registered in RECURSIVE mode. 
+      path that presents a client which is registered in RECURSIVE mode.
       In that case the client will receive the notification, too.*/
       while(i < maxIndex){
-            if(cpt_contains_child(current, tokens[i], &child)){ //node present
-                  int j; //counter
-                  for(j = 0; j < child->numRegistrations; j++){
-                        if((i < maxInternIndex && child->registrations[j]->mode == RECURSIVE) || i == maxInternIndex) {
-                              //add this notification
-                              if(cnl_add_notification(child->registrations[j]->client, stringNot) == PROG_ERROR){
-                                    fprintf(stderr, "cpt_push_notification: error while adding a notification to a client.\n");
-                                    return PROG_ERROR;
-                              }
-                        }
+         if(cpt_contains_child(current, tokens[i], &child)){ //node present
+            int j; //counter
+            for(j = 0; j < child->numRegistrations; j++){
+               if((i < maxInternIndex && child->registrations[j]->mode == RECURSIVE) || i == maxInternIndex) {
+                  //add this notification
+                  if(cnl_add_notification(child->registrations[j]->client, stringNot) == PROG_ERROR){
+                     fprintf(stderr, "cpt_push_notification: error while adding a notification to a client.\n");
+                     return PROG_ERROR;
                   }
-              
-                  if(i++ != maxInternIndex) current = child; //beacuse we'll need father and child
-            }else{ //there are no more clients we can send this notification to
-                  for(i = 0; i < numTokens; i++) free(tokens[i]);
-                  free(tokens);
-                  return PROG_SUCCESS;
+               }
             }
-      }
+
+            if(i++ != maxInternIndex) current = child; //beacuse we'll need father and child
+         }else{ //there are no more clients we can send this notification to
+               for(i = 0; i < numTokens; i++) free(tokens[i]);
+               free(tokens);
+               return PROG_SUCCESS;
+         }
+   }
       for(i = 0; i < numTokens; i++) free(tokens[i]);
       free(tokens);
       /*there is one last case to handle. A branch of the filesystem is deleted and all the clients
@@ -407,6 +387,24 @@ int cpt_push_notification(pathNode *root, receivedNotification *not, char *strin
                   current->numChildren--;
             }
       }
-      
       return PROG_SUCCESS;
+}
+
+// ===========================================================================
+// __cpt_print_tree_rec [SUPPPORT FUNCTION]
+// ===========================================================================
+void __cpt_print_tree_rec(pathNode *node, int lev){
+   int i;
+   for(i = 0; i < node->numChildren; i++){
+      printf("%*s| - Name: %s, numReg: %d\n", lev, " ", node->children[i]->name, node->children[i]->numRegistrations);
+      __cpt_print_tree_rec(node->children[i], lev + 3); //recursive call
+   }
+}
+
+// ===========================================================================
+// cpt_print_tree
+// ===========================================================================
+void cpt_print_tree(pathNode *root){
+   printf("_________CLIENT PATH TREE______________\n\n");
+   __cpt_print_tree_rec(root, 1);
 }

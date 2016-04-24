@@ -1,4 +1,5 @@
 #include "include/client_node_list.h"
+
 // ===========================================================================
 // cnl_create
 // ===========================================================================
@@ -114,13 +115,7 @@ int cnl_remove_client_node(clientNodeList *root, clientNode *node){
 // cnl_add_notification
 // ===========================================================================
 int cnl_add_notification(clientNode *client, char *notString){
-   char *tcopy = malloc(sizeof(char) * (strlen(notString) + 1));
-   if(!tcopy){
-      fprintf(stderr, "cnl_add_notification: error while allocating memory.\n");
-      return PROG_ERROR;
-   }
-   strcpy(tcopy, notString);
-   if(ll_add_item(client->updates, tcopy) == PROG_ERROR){
+   if(ll_add_item(client->updates, notString) == PROG_ERROR){
       fprintf(stderr, "cnl_add_notification: error while adding a notification to a client's updates list.\n");
       return PROG_ERROR;
    }
@@ -154,6 +149,59 @@ int cnl_signal_deletion(clientNode *client, char *fld){
 }
 
 // ===========================================================================
+// cnl_send_notifications
+// ===========================================================================
+int cnl_send_notifications(clientNodeList *list, char *udpPort){
+   clientNode *current = list->first;
+   clientNode *prev = NULL;
+   while(current){ //create an udp socket for each client
+      /*create udp socket*/
+      int s = create_connection(current->networkData->hostName, udpPort, SOCK_DGRAM);
+      if(s == PROG_ERROR){
+         fprintf(stderr, "cnl_send_notifications: error while creating an UDP socket.\n");
+         return PROG_ERROR;
+      }
+      linkedItem *prevItem = NULL;
+      linkedItem *currItem = current->updates->first;
+      while(currItem){
+         if(send_data(s, currItem->item, strlen(currItem->item)) == PROG_ERROR){
+            fprintf(stderr, "cnl_send_notifications: error while sending updates to a client.\n");
+            closesocket(s);
+            return PROG_ERROR;
+         }
+         //delete notification
+         prevItem = currItem;
+         currItem = currItem->next;
+         free(prevItem->item);
+         free(prevItem);
+      }
+      closesocket(s);
+      if(current->deletionMark){
+         if(prev == NULL)
+            list->first = current->next;
+         else
+            prev->next = current->next;
+
+         if(current->next == NULL) list->last = prev;
+
+         clientNode *tmp = current;
+         current = current->next;
+         ll_free(tmp->updates);
+         free(tmp->networkData->hostName);
+         free(tmp->networkData);
+         free(tmp);
+      }else{
+         current->updates->first = NULL;
+         current->updates->last = NULL;
+         prev = current;
+         current = current->next;
+      }
+   }
+   return PROG_SUCCESS;
+}
+
+
+// ===========================================================================
 // cnl_print_list
 // ===========================================================================
 void cnl_print_list(clientNodeList *list){
@@ -166,8 +214,7 @@ void cnl_print_list(clientNodeList *list){
       while(ci){
          printf("       - %s\n", (char *) ci->item);
          ci = ci->next;
-      }  
+      }
       current = current->next;
    }
-
 }

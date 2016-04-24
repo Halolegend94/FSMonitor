@@ -261,7 +261,7 @@ void *client_request_handler(void *p){
                fprintf(stderr, "client_request_handler: error while acquiring the syncmapping lock.\n");
                if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
                closesocket(params->sock);
-               terminate_server();
+               exit(0);
          }
          int regValue = register_server_path(server.structure, server.ID, path);
          if(syncmapping_release(server.mapLock) == PROG_ERROR){

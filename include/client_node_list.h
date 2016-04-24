@@ -8,7 +8,7 @@
    #include "common_definitions.h"
 
    #define DEL_MSG_SIZE 2048
-   
+
    typedef struct _clientNode{
       clientData *networkData;
       linkedList *updates;
@@ -51,9 +51,14 @@
    // cnl_signal_deletion
    // ===========================================================================
    int cnl_signal_deletion(clientNode *client, char *fld);
-   
+
    // ===========================================================================
    // cnl_print_list
    // ===========================================================================
    void cnl_print_list(clientNodeList *list);
+
+   // ===========================================================================
+   // cnl_send_notifications
+   // ===========================================================================
+   int cnl_send_notifications(clientNodeList *list, char *udpPort);
 #endif
