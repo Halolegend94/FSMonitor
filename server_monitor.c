@@ -19,7 +19,13 @@ int main(int argc, char **argv){
    }
 
    //create the threadlock
-   if(create_cr_lock(&server.threadLock) == -1){
+   if(create_threadlock(&server.crLock) == -1){
+      fprintf(stderr, "serverMonitor: error while creating the threadLock.\n");
+      terminate_server();
+   }
+
+   //create the threadlock
+   if(create_threadlock(&server.activeLock) == -1){
       fprintf(stderr, "serverMonitor: error while creating the threadLock.\n");
       terminate_server();
    }
@@ -40,24 +46,19 @@ int main(int argc, char **argv){
       if(thread_sleep(server.timeout) == -1) //signal received..
          while(1); //wait for imminent termination
 
+      /*critical section 1*/
+      if(acquire_threadlock(server.activeLock) == PROG_ERROR){
+         fprintf(stderr, "daemon: error while acquiring the activeLock. Terminating execution.\n");
+         terminate_server();
+      }
       /**************************************************
-      part 1: get notification from th mapping
+      part 1: get notification from the mapping
       ***************************************************/
       if(syncmapping_acquire(server.mapLock) == -1){
          fprintf(stderr, "serverMonitor: error while acquiring the mapLock. Terminating the server.\n");
          exit(0); //just shutdown the server, we cannot clean the mapping whitout mutual exclusion
       }
-      //Begin critical section
-      /*the following check is done to avoid race conditions:
-         - Signal ctrl+c is received and the handler executes, leave the critical section,
-         and it is stopped before it can terminate the process.
-         - This thread (monitor) enters the critical section and accesses the mapping
-         that has been deleted. ERROR.
-     */
-      if(server.isActive == 0){
-          syncmapping_release(server.mapLock);
-          break;
-      }
+
       /*some checks first. If the daemon is signaled to be dead, start a new one.
       /*Also, we need to see if the deamon is inactive for a long period of time.
       This could mean that the process which owned it has been killed. If, instead, it is
@@ -92,10 +93,14 @@ int main(int argc, char **argv){
          cs_terminate_server();
       }
 
+      if(release_threadlock(server.activeLock) == PROG_ERROR){
+         fprintf(stderr, "daemon: error while acquiring the activeLock. Terminating execution.\n");
+         terminate_server();
+      }
       /***************************************************************
       send notifications to clients
       ****************************************************************/
-      if(acquire_cr_lock(server.threadLock) == PROG_ERROR){
+      if(acquire_threadlock(server.crLock) == PROG_ERROR){
          fprintf(stderr, "serverMonitor: error while acquiring the threadLock.\n");
          terminate_server();
       }
@@ -145,7 +150,7 @@ int main(int argc, char **argv){
          terminate_server();
       }
       //release Lock
-      if(release_cr_lock(server.threadLock) == PROG_ERROR){
+      if(release_threadlock(server.crLock) == PROG_ERROR){
          fprintf(stderr, "serverMonitor: error while releasing the threadlock.\n");
          terminate_server();
       }
@@ -272,7 +277,6 @@ void load_settings(){
    }
    free_settings_structure(&loadedSettings);
 
-   server.isActive = 1;
 }
 
 // ===========================================================================

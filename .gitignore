@@ -17,3 +17,9 @@ mapping
 server
 
 *~
+
+errorlock.txt
+
+unlink
+
+client

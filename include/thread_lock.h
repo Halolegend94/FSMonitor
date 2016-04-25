@@ -1,33 +1,33 @@
-#ifndef __CRLOCK__
-   #define __CRLOCK__
+#ifndef __THREADLOCK__
+   #define __THREADLOCK__
    #include <stdlib.h>
    #include <stdio.h>
    #define PROG_SUCCESS 0
    #define PROG_ERROR -1
 
-   typedef struct crLock *pCRLock;
+   typedef struct threadLock *pThreadLock;
 
    // ===========================================================================
    //
-   // create_cr_lock
+   // create_threadlock
    //
    // ===========================================================================
-   int create_cr_lock(pCRLock *lock);
+   int create_threadlock(pThreadLock *lock);
 
    // ===========================================================================
    //
-   // acquire_cr_lock
+   // acquire_threadlock
    //
    // ===========================================================================
-   int acquire_cr_lock(pCRLock lock);
+   int acquire_threadlock(pThreadLock lock);
 
    // ===========================================================================
-   // release_cr_lock
+   // release_threadlock
    // ===========================================================================
-   int release_cr_lock(pCRLock lock);
+   int release_threadlock(pThreadLock lock);
 
    // ===========================================================================
-   // close_cr_lock
+   // close_threadlock
    // ===========================================================================
-   int close_cr_lock(pCRLock lock);
+   int close_threadlock(pThreadLock lock);
 #endif

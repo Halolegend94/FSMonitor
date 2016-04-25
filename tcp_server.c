@@ -211,7 +211,7 @@ void *client_request_handler(void *p){
    }
    //to check for disc, we must enter the critical section
    /*specific checks, need the lock*/
-   if(acquire_cr_lock(server.threadLock) == PROG_ERROR){
+   if(acquire_threadlock(server.crLock) == PROG_ERROR){
       fprintf(stderr, "client_request_handler: error while acquiring the threadlock.\n");
       if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
       closesocket(params->sock);
@@ -221,7 +221,7 @@ void *client_request_handler(void *p){
    if(commandCode == DISC){
       int retValue =  cr_unregister_path(server.clRegister, params->data, path);
       /*****END CRITICAL SECTION************/
-      if(release_cr_lock(server.threadLock) == PROG_ERROR){
+      if(release_threadlock(server.crLock) == PROG_ERROR){
          fprintf(stderr, "client_request_handler: error while releasing the threadlock.\n");
          if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
          closesocket(params->sock);
@@ -280,7 +280,7 @@ void *client_request_handler(void *p){
             free(params);
             free(path);
 
-            if(release_cr_lock(server.threadLock) == PROG_ERROR){
+            if(release_threadlock(server.crLock) == PROG_ERROR){
                fprintf(stderr, "client_request_handler: error while releasing the threadlock.\n");
                terminate_server();
             }
@@ -340,7 +340,7 @@ void *client_request_handler(void *p){
             free(params->data);
             free(params);
             free(path);
-            if(release_cr_lock(server.threadLock) == PROG_ERROR){
+            if(release_threadlock(server.crLock) == PROG_ERROR){
                fprintf(stderr, "client_request_handler: error while releasing the threadlock.\n");
                terminate_server();
             }
@@ -363,7 +363,7 @@ void *client_request_handler(void *p){
       free(params->data);
       free(params);
       free(path);
-      if(release_cr_lock(server.threadLock) == PROG_ERROR){
+      if(release_threadlock(server.crLock) == PROG_ERROR){
          fprintf(stderr, "client_request_handler: error while releasing the threadlock.\n");
          terminate_server();
       }

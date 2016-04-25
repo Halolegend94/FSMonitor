@@ -13,7 +13,7 @@
    #include "myfile.h"
    #include "thread.h"
    #include "time_utilities.h"
-   #include "cr_lock.h"
+   #include "thread_lock.h"
 
    typedef struct _serverStructure{
        int ID;
@@ -26,12 +26,12 @@
        long long mapSize;            //the size of the mapping
        mappingStructure *structure;  //the logic structure of the mapping
        pToThread thread;             //object that points to the daemon thread, if this process owns it
-       int isActive;                 //tells if the server must continue its execution
        char *tcpPort;                //the tcp port the server is listening to
        char *udpPort;                //the udp port where the server sends uodates
        int maxClientConnections;     //the number of simultaneous client connections that the socket will handle
        unsigned long long startUpTime; //the time the server was started
-       pCRLock threadLock;           //lock to sync accesses to shared resources inside the single process
+       pThreadLock crLock;           //lock to sync accesses to shared resources inside the single process
+       pThreadLock activeLock;       //lock used to guard over active variable
        clientRegister *clRegister;    //the data structure with client registrations.
    } serverStructure;
 

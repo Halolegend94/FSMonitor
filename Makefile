@@ -37,12 +37,12 @@ server-win : server_monitor.c tcp_server.c win\utilities.c mem_management.obj fi
 	mapping.obj myfile.obj settings_parser.obj syncmapping.obj notifications_bucket.obj utilities.obj \
 	daemon.obj thread.obj time_utilities.obj received_notification.obj signal_handler.obj \
 	server_commons.obj client_register.obj client_node_list.obj client_path_tree.obj linked_list.obj \
-	cr_lock.obj
+	thread_lock.obj
 	$(WC) $(WNAME)"server" server_monitor.c tcp_server.c mem_management.obj filesystree.obj daemon.obj thread.obj  \
 		mapping_structure.obj mapping.obj myfile.obj settings_parser.obj syncmapping.obj \
 		notifications_bucket.obj utilities.obj time_utilities.obj received_notification.obj \
 		signal_handler.obj server_commons.obj client_register.obj client_node_list.obj \
-		client_path_tree.obj linked_list.obj cr_lock.obj
+		client_path_tree.obj linked_list.obj thread_lock.obj
 
 client-win : client.c settings_parser.obj params_parser.obj networking.obj thread.obj
 	$(WC) $(WNAME)"client" client.c settings_parser.obj params_parser.obj networking.obj thread.obj
@@ -101,8 +101,8 @@ mapping.obj : "win\mapping.c"
 myfile.obj : "win\myfile.c"
 	$(WC) $(WOBJ) win\myfile.c
 
-cr_lock.obj : "win\cr_lock.c"
-	$(WC) $(WOBJ) win\cr_lock.c
+thread_lock.obj : "win\thread_lock.c"
+	$(WC) $(WOBJ) win\thread_lock.c
 
 signal_handler.obj : win\signal_handler.c
 	$(WC) $(WOBJ) win\signal_handler.c
@@ -128,11 +128,11 @@ thread.obj : "win\thread.c"
 server-linux : server_monitor.c tcp_server.c mem_management.o filesystree.o mapping_structure.o \
 	mapping.o myfile.o settings_parser.o syncmapping.o notifications_bucket.o thread.o daemon.o \
 	time_utilities.o received_notification.o signal_handler.o server_commons.o client_register.o \
-	networking.o client_node_list.o client_path_tree.o linked_list.o cr_lock.o
+	networking.o client_node_list.o client_path_tree.o linked_list.o thread_lock.o
 	$(LC) $(LNAME)"server" server_monitor.c tcp_server.c mem_management.o filesystree.o thread.o daemon.o \
 		mapping_structure.o mapping.o myfile.o settings_parser.o syncmapping.o notifications_bucket.o \
 		time_utilities.o received_notification.o signal_handler.o server_commons.o client_register.o\
-		networking.o client_node_list.o client_path_tree.o linked_list.o cr_lock.o $(LLINK)
+		networking.o client_node_list.o client_path_tree.o linked_list.o thread_lock.o $(LLINK)
 
 client-linux : client.c settings_parser.o params_parser.o networking.o thread.o
 	$(LC) $(LNAME)"client" client.c settings_parser.o params_parser.o networking.o thread.o $(LLINK)
@@ -192,8 +192,8 @@ mapping.o : linux/mapping.c
 myfile.o : linux/myfile.c
 	$(LC) $(LOBJ) "linux/myfile.c"
 
-cr_lock.o : linux/cr_lock.c
-	$(LC) $(LOBJ) "linux/cr_lock.c"
+thread_lock.o : linux/thread_lock.c
+	$(LC) $(LOBJ) "linux/thread_lock.c"
 
 time_utilities.o : linux/time_utilities.c
 	$(LC) $(LOBJ) "linux/time_utilities.c"

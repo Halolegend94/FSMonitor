@@ -6,6 +6,10 @@ extern serverStructure server;
 // NOTE: to use outside a critical section
 // ===========================================================================
 void terminate_server(){
+   if(acquire_threadlock(server.activeLock) == PROG_ERROR){
+      fprintf(stderr, "daemon: error while acquiring the activeLock. Terminating execution.\n");
+      terminate_server();
+   }
     syncmapping_acquire(server.mapLock);
     cs_terminate_server();
 }
@@ -22,18 +26,20 @@ void cs_terminate_server(){
       fprintf(stderr, "There have been errors while removing the server data from the mapping. "\
       "Probably it is corrupted.\n");
    }
-   server.isActive = 0;
+   int numServers = (server.structure)->serverCounter;
    if(delete_mapping(server.mapping) == PROG_ERROR)
      fprintf(stderr, "Error while unmapping the file.\n");
 
-   if((server.structure)->serverCounter == 0) //if it is the last server, delete the mapping
+   if(numServers == 0) //if it is the last server, delete the mapping
       if(delete_file(server.mapName) == PROG_ERROR)
          fprintf(stderr, "Error while deleting the mapping file. Delete it manually.\n");
 
    if(syncmapping_release(server.mapLock) == PROG_ERROR)
       fprintf(stderr, "Error while releasing the lock.\n");
-   /* if(syncmapping_closelock(server.mapLock) == PROG_ERROR)
-      fprintf(stderr, "Error while closing the lock handler.\n");*/
+   if(syncmapping_closelock(server.mapLock) == PROG_ERROR)
+      fprintf(stderr, "Error while closing the lock handler.\n");
+
+   //don't unlock activeLock to avoid data races
    printf("..done\n");
    exit(0);
 }

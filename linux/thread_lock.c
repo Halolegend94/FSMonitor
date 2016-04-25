@@ -1,17 +1,17 @@
-#include "../include/cr_lock.h"
+#include "../include/thread_lock.h"
 #include <pthread.h>
 
-struct crLock{
+struct threadLock{
    pthread_mutex_t mutex;
 };
 
 // ===========================================================================
-// create_cr_lock
+// create_threadlock
 // ===========================================================================
-int create_cr_lock(struct crLock **lock){
-   *lock = malloc(sizeof(struct crLock));
+int create_threadlock(struct threadLock **lock){
+   *lock = malloc(sizeof(struct threadLock));
    if(!(*lock)){
-      fprintf(stderr, "create_cr_lock: error while allocating memory.\n");
+      fprintf(stderr, "create_threadlock: error while allocating memory.\n");
       return PROG_ERROR;
    }
    pthread_mutex_init(&((*lock)->mutex), NULL);
@@ -19,33 +19,33 @@ int create_cr_lock(struct crLock **lock){
 }
 
 // ===========================================================================
-// acquire_cr_lock
+// acquire_threadlock
 // ===========================================================================
-int acquire_cr_lock(struct crLock *lock){
+int acquire_threadlock(struct threadLock *lock){
    if(pthread_mutex_lock(&(lock->mutex)) != 0){
-      fprintf(stderr, "acquire_cr_lock: error while acquiring the cr_lock.\n");
+      fprintf(stderr, "acquire_threadlock: error while acquiring the threadlock.\n");
       return PROG_ERROR;
    }
    return PROG_SUCCESS;
 }
 
 // ===========================================================================
-// release_cr_lock
+// release_threadlock
 // ===========================================================================
-int release_cr_lock(struct crLock *lock){
+int release_threadlock(struct threadLock *lock){
    if(pthread_mutex_unlock(&(lock->mutex)) != 0){
-      fprintf(stderr, "release_cr_lock: error while releasing the cr_lock.\n");
+      fprintf(stderr, "release_threadlock: error while releasing the threadlock.\n");
       return PROG_ERROR;
    }
    return PROG_SUCCESS;
 }
 
 // ===========================================================================
-// close_cr_lock
+// close_threadlock
 // ===========================================================================
-int close_cr_lock(struct crLock *lock){
+int close_threadlock(struct threadLock *lock){
    if(pthread_mutex_destroy(&(lock->mutex)) != 0){
-      fprintf(stderr, "close_cr_lock: error while destroying the lock.\n");
+      fprintf(stderr, "close_threadlock: error while destroying the lock.\n");
       return PROG_ERROR;
    }
    return PROG_SUCCESS;

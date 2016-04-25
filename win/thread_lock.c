@@ -1,44 +1,44 @@
-#include "../include/cr_lock.h"
+#include "../include/thread_lock.h"
 #include <windows.h>
 #include "utilities.h"
 /*wrapper, used for abstraction*/
-struct crLock {
+struct threadLock {
     HANDLE mutex;
 };
 
 // ===========================================================================
-// create_cr_lock
+// create_threadlock
 // ===========================================================================
-int create_cr_lock(struct crLock **lock){
-   *lock = malloc(sizeof(struct crLock));
+int create_threadlock(struct threadLock **lock){
+   *lock = malloc(sizeof(struct threadLock));
    if(!(*lock)){
-      fprintf(stderr, "create_cr_lock: error while allocating memory.\n");
+      fprintf(stderr, "create_threadlock: error while allocating memory.\n");
       return -1;
    }
    (*lock)->mutex = CreateMutex(NULL, FALSE, NULL);
    if((*lock)->mutex == NULL){
-      fprintf(stderr, "create_cr_lock: error while creating the mutex.\n");
+      fprintf(stderr, "create_threadlock: error while creating the mutex.\n");
       return PROG_ERROR;
    }
 	return PROG_SUCCESS;
 }
 
 // ===========================================================================
-// acquire_cr_lock
+// acquire_threadlock
 // ===========================================================================
-int acquire_cr_lock(struct crLock *lock) {
+int acquire_threadlock(struct threadLock *lock) {
    DWORD ret = WaitForSingleObject(lock->mutex, INFINITE);
    if(ret == WAIT_FAILED){
-      fprintf(stderr, "create_cr_lock: error while acquiring the mutex.\n");
+      fprintf(stderr, "create_threadlock: error while acquiring the mutex.\n");
       return PROG_ERROR;
    }
 	return PROG_SUCCESS;
 }
 
 // ===========================================================================
-// release_cr_lock
+// release_threadlock
 // ===========================================================================
-int release_cr_lock(struct crLock *lock) {
+int release_threadlock(struct threadLock *lock) {
 	BOOL unlocked = ReleaseMutex(lock->mutex);
    if(unlocked == 0){
       printf("%s\n", GetLastErrorAsString());
@@ -49,9 +49,9 @@ int release_cr_lock(struct crLock *lock) {
 }
 
 // ===========================================================================
-// close_cr_lock
+// close_threadlock
 // ===========================================================================
-int close_cr_lock(struct crLock *lock){
+int close_threadlock(struct threadLock *lock){
 	if(!CloseHandle(lock->mutex)){
 		fprintf(stderr, "Error while closing the lock handle.\n");
 		return PROG_ERROR;
