@@ -99,23 +99,23 @@ int initialize_mapping_structure(char *memoryBlock, mappingStructure **str,
 // register_server_path
 // ===========================================================================
 int register_server_path(mappingStructure *str, int serverID, char *path){
-	/*add the necessary branch to the filesystree*/
-	int ret = __first_scan(pmm_offset_to_pointer(str->off_fileSystemTree), path);
-	if( ret == PROG_ERROR){ //error
-		fprintf(stderr, "register_server_path: error while performing the first scan.\n");
-		return PROG_ERROR;
-	}else if(ret == PATH_NOT_ACCESSIBLE){
-			return PATH_NOT_ACCESSIBLE; //path no longer available
-	}
 
 	/*add the notification bucket*/
 	notificationsBucket *start = pmm_offset_to_pointer(str->off_notifications);
 	notificationsBucket *buck;
-	ret = nb_exists_bucket(start, serverID, path, &buck);
+	int ret = nb_exists_bucket(start, serverID, path, &buck);
 	if(ret == 1){
 			if(buck == NULL){
 				return PATH_ALREADY_MONITORED;
 			}else{
+				/*add the necessary branch to the filesystree*/
+				ret = __first_scan(pmm_offset_to_pointer(str->off_fileSystemTree), path);
+				if( ret == PROG_ERROR){ //error
+					fprintf(stderr, "register_server_path: error while performing the first scan.\n");
+					return PROG_ERROR;
+				}else if(ret == PATH_NOT_ACCESSIBLE){
+						return PATH_NOT_ACCESSIBLE; //path no longer available
+				}
 				/*need to update the bucket's associated path and change the marked node in the tree.
 				if it is not monitored by other servers*/
 				char *oPath = malloc(sizeof(char) * (strlen(pmm_offset_to_pointer(buck->off_path)) + 1));
@@ -158,6 +158,14 @@ int register_server_path(mappingStructure *str, int serverID, char *path){
 				return PATH_UPDATED;
 			}
 	}else{
+		/*add the necessary branch to the filesystree*/
+		ret = __first_scan(pmm_offset_to_pointer(str->off_fileSystemTree), path);
+		if( ret == PROG_ERROR){ //error
+			fprintf(stderr, "register_server_path: error while performing the first scan.\n");
+			return PROG_ERROR;
+		}else if(ret == PATH_NOT_ACCESSIBLE){
+				return PATH_NOT_ACCESSIBLE; //path no longer available
+		}
 		if(nb_add_bucket(start, serverID, path) == PROG_ERROR){
 			fprintf(stderr, "register_server_path: error while adding a bucket.\n");
 			return PROG_ERROR;

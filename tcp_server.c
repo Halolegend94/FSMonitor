@@ -328,7 +328,7 @@ void *client_request_handler(void *p){
          int i;
          int found = 0;
          for(i = 0; i < server.serverPathsCount; i++){
-            if(is_prefix(server.serverPaths[i], path)){
+            if(is_prefix(path, server.serverPaths[i])){
                found = 1;
                break;
             }

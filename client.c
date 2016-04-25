@@ -135,7 +135,7 @@ int execute_command(optToken *comm){
       return 0;
    }
    else if(strcmp(buffer, "400") == 0){
-      if(comm->name[0] == 'r' || comm->name[0] == 'r')
+      if(comm->name[0] == 'r' || comm->name[0] == 'R')
          fprintf(stdout, "Error 400: the desired path is not among the monitored ones.\n");
       else
          fprintf(stdout, "Error 400: you were not registered for the specified path.\n");
