@@ -27,10 +27,10 @@ int ll_add_item(linkedList *list, void *pItem){
 	}
 	el->item = pItem;
 	el->next = NULL;
-	int len = list->count++;
+	list->count++;
 	el->id = list->idCounter++;
 
-	if(len == 0) {
+	if(list->first == NULL) {
 		el->prev = NULL;
 		list->first = el;
 	}else{

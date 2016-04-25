@@ -82,7 +82,7 @@ int execute_command(optToken *comm){
       fprintf(stderr, "tcp_server_function: error while creating the server socket. Terminating the client.\n");
       exit(0);
    }
-   char *buffer = malloc(sizeof(char) * (strlen(comm->value) * MAX_COMMAND_NAME_LEN)); //9 chars for the command name
+   char *buffer = malloc(sizeof(char) * (strlen(comm->value) + MAX_COMMAND_NAME_LEN + 1)); //9 chars for the command name
    if(!buffer){
       fprintf(stderr, "execute_command: error while allocating memory.\n");
       return -1;
@@ -131,6 +131,7 @@ int execute_command(optToken *comm){
    /*check return code*/
    if(strcmp(buffer, "200") == 0) {
       fprintf(stdout, "Command executed successfully!.\n");
+      free(buffer);
       return 0;
    }
    else if(strcmp(buffer, "400") == 0){
@@ -138,22 +139,25 @@ int execute_command(optToken *comm){
          fprintf(stdout, "Error 400: the desired path is not among the monitored ones.\n");
       else
          fprintf(stdout, "Error 400: you were not registered for the specified path.\n");
+      free(buffer);
       return -1;
    }else if(strcmp(buffer, "404") == 0){
       fprintf(stdout, "Error 404: path not found.\n");
+      free(buffer);
       return -1;
    }else if(strcmp(buffer, "403") == 0){
       fprintf(stdout, "Error 403: path not accessible.\n");
+      free(buffer);
       return -1;
    }else if(strcmp(buffer, "300") == 0){
       fprintf(stdout, "Error 300: server internal error.\n");
+      free(buffer);
       return -1;
    }else{
       fprintf(stdout, "execute_command: response from server is not valid.\n");
+      free(buffer);
       return -1;
    }
-   free(buffer);
-   return 0;
 }
 
 // ===========================================================================
@@ -215,10 +219,6 @@ int main(int argc, char **argv){
          c = i;
       }
    }
-   if(c == -1){
-      fprintf(stderr, "No valid command to execute.\n");
-      exit(0);
-   }
 
    /*create UDP server socket */
    if(w){
@@ -236,19 +236,22 @@ int main(int argc, char **argv){
       }
    }
 
-   /*now we can send the command to the client*/
-   if(execute_command(list[c]) == -1) exit(0);
+   /*now we can send the command to the client, if any*/
+   if(c != -1)
+      if(execute_command(list[c]) == -1)
+         exit(0);
 
-   if(w) {
-      fprintf(stdout, "Waiting for updates. Press any key to exit.\n\n");
-      getchar();
-   }
-   /*free memory.*/
-   free_settings_structure(&settList);
+   /*free memory*/
    free(myClient.serverAddress);
    free(myClient.tcpPort);
    free(myClient.udpPort);
    free_optTokenList(list, numItems);
+
+   /*wait for updates*/
+   if(w) {
+      fprintf(stdout, "Waiting for updates. Press any key to exit.\n\n");
+      getchar();
+   }
    return 0;
 }
 

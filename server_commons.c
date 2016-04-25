@@ -23,23 +23,17 @@ void cs_terminate_server(){
       "Probably it is corrupted.\n");
    }
    server.isActive = 0;
-   if((server.structure)->serverCounter == 0){ //if it is the last server, delete the mapping
-       if(delete_mapping(server.mapping) == PROG_ERROR)
-         fprintf(stderr, "Error while unmapping the file.\n");
-       if(delete_file(server.mapName) == PROG_ERROR)
-        fprintf(stderr, "Error while deleting the mapping file. Delete it manually.\n");
-       if(syncmapping_release(server.mapLock) == PROG_ERROR)
-         fprintf(stderr, "Error while releasing the lock.\n");
-       if(syncmapping_deletelock(server.mapLock) == PROG_ERROR)
-         fprintf(stderr, "Error while deleting the lock.\n");
-   }else{
-       if(delete_mapping(server.mapping) == PROG_ERROR)
-         fprintf(stderr, "Error while unmapping the file.\n");
-       if(syncmapping_release(server.mapLock) == PROG_ERROR)
-         fprintf(stderr, "Error while releasing the lock.\n");
-       if(syncmapping_closelock(server.mapLock) == PROG_ERROR)
-         fprintf(stderr, "Error while closing the lock handler.\n");
-   }
+   if(delete_mapping(server.mapping) == PROG_ERROR)
+     fprintf(stderr, "Error while unmapping the file.\n");
+
+   if((server.structure)->serverCounter == 0) //if it is the last server, delete the mapping
+      if(delete_file(server.mapName) == PROG_ERROR)
+         fprintf(stderr, "Error while deleting the mapping file. Delete it manually.\n");
+
+   if(syncmapping_release(server.mapLock) == PROG_ERROR)
+      fprintf(stderr, "Error while releasing the lock.\n");
+   /* if(syncmapping_closelock(server.mapLock) == PROG_ERROR)
+      fprintf(stderr, "Error while closing the lock handler.\n");*/
    printf("..done\n");
    exit(0);
 }

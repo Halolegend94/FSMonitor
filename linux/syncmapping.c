@@ -23,8 +23,7 @@ int syncmapping_createlock(struct syncMapping **lock){
       fprintf(stderr, "Error while allocating memory.\n");
       return -1;
    }
-   sem_unlink("/syncmap");
-   (*lock)->sem = sem_open("/syncmap", O_CREAT, O_RDWR, 1);
+   (*lock)->sem = sem_open("/syncmap", O_CREAT, 0777, 1);
    if((*lock)->sem == SEM_FAILED){
       fprintf(stderr, "syncmapping_createlock: error while creating the semaphore.\n");
       perror("Errore");
@@ -37,6 +36,7 @@ int syncmapping_createlock(struct syncMapping **lock){
 // syncmapping_acquire
 // ===========================================================================
 int syncmapping_acquire(struct syncMapping *lock){
+      if(!lock) return -1;
       int ret = sem_wait(lock->sem);
       if(ret == -1){
         fprintf(stderr, "Error while acquiring the syncmapping lock.\n");
@@ -49,18 +49,20 @@ int syncmapping_acquire(struct syncMapping *lock){
 // syncmapping_release
 // ===========================================================================
 int syncmapping_release(struct syncMapping *lock){
-  int err = sem_post(lock->sem);
-  if(err == -1){
-    fprintf(stderr, "Error while releasing the syncmapping lock.\n");
-    return -1;
-  }
-  return 0;
+   if(!lock) return -1;
+   int err = sem_post(lock->sem);
+   if(err == -1){
+     fprintf(stderr, "Error while releasing the syncmapping lock.\n");
+     return -1;
+   }
+   return 0;
 }
 
 // ===========================================================================
 // syncmapping_closelock
 // ===========================================================================
 int syncmapping_closelock(struct syncMapping *lock){
+   if(!lock) return -1;
    if(sem_close(lock->sem) == -1){
       fprintf(stderr, "Error while closing the semaphore.\n");
       return -1;
@@ -73,6 +75,7 @@ int syncmapping_closelock(struct syncMapping *lock){
 // syncmapping_deletelock
 // ===========================================================================
 int syncmapping_deletelock(struct syncMapping *lock){
+   if(!lock) return -1;
    if(sem_close(lock->sem) == -1){
       fprintf(stderr, "Error while closing the semaphore.\n");
       return -1;
