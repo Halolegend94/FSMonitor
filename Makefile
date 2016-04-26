@@ -135,7 +135,7 @@ server-linux : server_monitor.c tcp_server.c mem_management.o filesystree.o mapp
 		networking.o client_node_list.o client_path_tree.o linked_list.o thread_lock.o $(LLINK)
 
 client-linux : client.c settings_parser.o params_parser.o networking.o thread.o
-	$(LC) $(LNAME)"client" client.c settings_parser.o params_parser.o networking.o thread.o $(LLINK)
+	$(LC) $(LNAME)"client" client.c settings_parser.o params_parser.o networking.o thread.o  $(LLINK)
 ####################################################################################################
 # platform indipendent
 ####################################################################################################

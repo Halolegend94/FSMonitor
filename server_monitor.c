@@ -10,33 +10,45 @@ int main(int argc, char **argv){
 
    check_params(argc, argv);
    load_settings();
-   initialize_server();  //include a critical section, the daemon starts in here
 
    //Install CTRL+C handler
-   if(install_signal_handler(ctrlc_handler) == -1){
+   if(install_signal_handler(ctrlc_handler) == PROG_ERROR){
        fprintf(stderr, "serverMonitor: error while installing the ctrl+c handler.\n");
-       terminate_server();
+       exit(0);
    }
 
    //create the threadlock
-   if(create_threadlock(&server.crLock) == -1){
+   if(create_threadlock(&server.crLock) == PROG_ERROR){
       fprintf(stderr, "serverMonitor: error while creating the threadLock.\n");
-      terminate_server();
+      exit(0);
    }
 
    //create the threadlock
-   if(create_threadlock(&server.activeLock) == -1){
+   if(create_threadlock(&server.activeLock) == PROG_ERROR){
       fprintf(stderr, "serverMonitor: error while creating the threadLock.\n");
-      terminate_server();
+      exit(0);
+   }
+
+   /*to avoid a client can connect before the mapping structure is intialized, we acquire the lock*/
+   if(acquire_threadlock(server.crLock) == PROG_ERROR){
+      fprintf(stderr, "serverMonitor: error while acquiring the threadLock.\n");
+      exit(0);
    }
 
    //Start the TCP server
    if(start_tcp_server() == PROG_ERROR){
       fprintf(stderr, "serverMonitor: error while starting the tcp server.\n");
-      terminate_server();
+      exit(0);
    }
 
-   printf("Server (ID=%u) is active!\n", server.ID);
+   initialize_server();  //include a critical section, the daemon starts in here
+
+   if(release_threadlock(server.crLock) == PROG_ERROR){
+      fprintf(stderr, "serverMonitor: releasing while creating the threadLock.\n");
+      exit(0);
+   }
+
+   printf("Server (ID=%u) is active! Press CTRL+C to terminate the server.\n", server.ID);
 
    thread_sleep(INITIAL_DELAY); //so serverMonitor and daemon will be active at different time windows
 
@@ -58,7 +70,6 @@ int main(int argc, char **argv){
          fprintf(stderr, "serverMonitor: error while acquiring the mapLock. Terminating the server.\n");
          exit(0); //just shutdown the server, we cannot clean the mapping whitout mutual exclusion
       }
-
       /*some checks first. If the daemon is signaled to be dead, start a new one.
       /*Also, we need to see if the deamon is inactive for a long period of time.
       This could mean that the process which owned it has been killed. If, instead, it is
@@ -87,7 +98,6 @@ int main(int argc, char **argv){
          fprintf(stderr, "serverMonitor: error while getting the notifications list. Aborting execution..\n");
          cs_terminate_server();
       }
-
       if(syncmapping_release(server.mapLock) == PROG_ERROR){
          fprintf(stderr, "serverMonitor: error while releasing the mapLock.\n");
          cs_terminate_server();
@@ -95,7 +105,7 @@ int main(int argc, char **argv){
 
       if(release_threadlock(server.activeLock) == PROG_ERROR){
          fprintf(stderr, "daemon: error while acquiring the activeLock. Terminating execution.\n");
-         terminate_server();
+         cs_terminate_server();
       }
       /***************************************************************
       send notifications to clients
@@ -144,7 +154,7 @@ int main(int argc, char **argv){
             terminate_server();
          }
       }
-      print_mappingstructure_state(structure);
+      //print_mappingstructure_state(structure);
       print_client_register(server.clRegister);
       //send all the notifications
       if(cnl_send_notifications((server.clRegister)->nodeList, server.udpPort) == PROG_ERROR){
@@ -156,6 +166,13 @@ int main(int argc, char **argv){
          fprintf(stderr, "serverMonitor: error while releasing the threadlock.\n");
          terminate_server();
       }
+      //free resources
+      for(i = 0; i < numNotifications; i++){
+         free(notificationsList[i]->path);
+         free(notificationsList[i]->perms);
+         free(notificationsList[i]);
+      }
+      if(numNotifications > 0) free(notificationsList);
    }
 }
 

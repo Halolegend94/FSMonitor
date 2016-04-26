@@ -256,15 +256,26 @@ void *client_request_handler(void *p){
       if(add){
          //add the path to the tree
          //=================SYNCMAPPING LOCK============================
-
+         if(acquire_threadlock(server.activeLock) == PROG_ERROR){
+            fprintf(stderr, "daemon: error while acquiring the activeLock. Terminating execution.\n");
+            if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
+            closesocket(params->sock);
+            terminate_server();
+         }
          if(syncmapping_acquire(server.mapLock) == PROG_ERROR){
                fprintf(stderr, "client_request_handler: error while acquiring the syncmapping lock.\n");
                if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
                closesocket(params->sock);
-               exit(0);
+               cs_terminate_server();
          }
          int regValue = register_server_path(server.structure, server.ID, path);
          if(syncmapping_release(server.mapLock) == PROG_ERROR){
+            fprintf(stderr, "client_request_handler: error while releasing the syncmapping lock.\n");
+            if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
+            closesocket(params->sock);
+            cs_terminate_server();
+         }
+         if(release_threadlock(server.activeLock) == PROG_ERROR){
             fprintf(stderr, "client_request_handler: error while releasing the syncmapping lock.\n");
             if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
             closesocket(params->sock);
@@ -349,11 +360,35 @@ void *client_request_handler(void *p){
       }
 
       //add the registration to the client register
-      if(cr_register_path(server.clRegister, params->data, path, recurs ? RECURSIVE : NONRECURSIVE) == PROG_ERROR){
+      int crRet = cr_register_path(server.clRegister, params->data, path, recurs ? RECURSIVE : NONRECURSIVE);
+      if(crRet == PROG_ERROR){
          fprintf(stderr, "client_request_handler: error while registering a client.\n");
          if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
          closesocket(params->sock);
          terminate_server();
+      }else if(crRet == PATH_ALREADY_REGISTERED){
+         if(send_data(params->sock, "201", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
+         closesocket(params->sock);
+         free(params->data->hostName);
+         free(params->data);
+         free(params);
+         free(path);
+         if(release_threadlock(server.crLock) == PROG_ERROR){
+            fprintf(stderr, "client_request_handler: error while releasing the threadlock.\n");
+            terminate_server();
+         }
+         return NULL;
+      }else if(crRet == PATH_UPDATED){
+         if(send_data(params->sock, "202", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
+         closesocket(params->sock);
+         free(params->data->hostName);
+         free(params->data);
+         free(params);
+         if(release_threadlock(server.crLock) == PROG_ERROR){
+            fprintf(stderr, "client_request_handler: error while releasing the threadlock.\n");
+            terminate_server();
+         }
+         return NULL;
       }
 
       //it's all ok
@@ -362,7 +397,6 @@ void *client_request_handler(void *p){
       free(params->data->hostName);
       free(params->data);
       free(params);
-      free(path);
       if(release_threadlock(server.crLock) == PROG_ERROR){
          fprintf(stderr, "client_request_handler: error while releasing the threadlock.\n");
          terminate_server();

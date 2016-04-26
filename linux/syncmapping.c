@@ -39,7 +39,7 @@ int syncmapping_acquire(struct syncMapping *lock){
       if(!lock) return -1;
       int ret = sem_wait(lock->sem);
       if(ret == -1){
-        fprintf(stderr, "Error while acquiring the syncmapping lock.\n");
+        fprintf(stderr, "syncmapping_acquire: error while acquiring the syncmapping lock.\n");
         return -1;
       }
       return 0;
@@ -52,7 +52,7 @@ int syncmapping_release(struct syncMapping *lock){
    if(!lock) return -1;
    int err = sem_post(lock->sem);
    if(err == -1){
-     fprintf(stderr, "Error while releasing the syncmapping lock.\n");
+     fprintf(stderr, "syncmapping_release: error while releasing the syncmapping lock.\n");
      return -1;
    }
    return 0;
@@ -64,7 +64,7 @@ int syncmapping_release(struct syncMapping *lock){
 int syncmapping_closelock(struct syncMapping *lock){
    if(!lock) return -1;
    if(sem_close(lock->sem) == -1){
-      fprintf(stderr, "Error while closing the semaphore.\n");
+      fprintf(stderr, "syncmapping_closelock: error while closing the semaphore.\n");
       return -1;
    }
    free(lock);
@@ -77,11 +77,11 @@ int syncmapping_closelock(struct syncMapping *lock){
 int syncmapping_deletelock(struct syncMapping *lock){
    if(!lock) return -1;
    if(sem_close(lock->sem) == -1){
-      fprintf(stderr, "Error while closing the semaphore.\n");
+      fprintf(stderr, "syncmapping_deletelock: error while closing the semaphore.\n");
       return -1;
    }
    if(sem_unlink("/syncmap") == -1){
-      fprintf(stderr, "Error while deleting the semaphore.\n");
+      fprintf(stderr, "syncmapping_deletelock: error while deleting the semaphore.\n");
       return -1;
    }
    free(lock);

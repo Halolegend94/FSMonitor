@@ -10,6 +10,7 @@
    #include "mapping.h"
    #include "syncmapping.h"
    #include "client_register.h"
+   #include "networking.h"
    #include "myfile.h"
    #include "thread.h"
    #include "time_utilities.h"
@@ -32,6 +33,7 @@
        unsigned long long startUpTime; //the time the server was started
        pThreadLock crLock;           //lock to sync accesses to shared resources inside the single process
        pThreadLock activeLock;       //lock used to guard over active variable
+       int tcpSocket;                //server socket Descriptor
        clientRegister *clRegister;    //the data structure with client registrations.
    } serverStructure;
 

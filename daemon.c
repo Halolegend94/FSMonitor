@@ -52,7 +52,7 @@ void *do_work(void *arg){
 
       if(release_threadlock(server.activeLock) == PROG_ERROR){
          fprintf(stderr, "daemon: error while acquiring the activeLock. Terminating execution.\n");
-         terminate_server();
+         cs_terminate_server();
       }
       if(thread_sleep(refreshTime) == -1)break; //signal received
    }

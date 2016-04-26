@@ -1,4 +1,5 @@
 #include "include/client.h"
+#include "include/signal_handler.h"
 #define NUM_PWV 6
 #define MAX_COMMAND_NAME_LEN 15
 #define UDP_BUFF_SIZE 512
@@ -133,8 +134,13 @@ int execute_command(optToken *comm){
       fprintf(stdout, "Command executed successfully!.\n");
       free(buffer);
       return 0;
-   }
-   else if(strcmp(buffer, "400") == 0){
+   }else if(strcmp(buffer, "201") == 0){
+      fprintf(stdout, "Code 201: the specified folder is a subfolder of a directory already registered.\n");
+      return 0;
+   }else if(strcmp(buffer, "202") == 0){
+      fprintf(stdout, "Code 202: the specified folder replaced an existent registration to a subfolder.\n");
+      return 0;
+   }else if(strcmp(buffer, "400") == 0){
       if(comm->name[0] == 'r' || comm->name[0] == 'R')
          fprintf(stdout, "Error 400: the desired path is not among the monitored ones.\n");
       else
@@ -198,7 +204,6 @@ int main(int argc, char **argv){
    myClient.serverAddress = serverAddress;
 
    free_settings_structure(&settList);
-
    /*load networking lib*/
    if(load_sockets_library() == -1){
       fprintf(stderr, "Error while loading the networking library.\n");
@@ -221,8 +226,9 @@ int main(int argc, char **argv){
    }
 
    /*create UDP server socket */
+   int s = -1;
    if(w){
-      int s = create_server_socket(myClient.udpPort, 0, SOCK_DGRAM);
+      s = create_server_socket(myClient.udpPort, 0, SOCK_DGRAM);
       if(s == -1){
          fprintf(stderr, "tcp_server_function: error while creating the server socket. Terminating the client.\n");
          exit(0);
@@ -246,12 +252,13 @@ int main(int argc, char **argv){
    free(myClient.tcpPort);
    free(myClient.udpPort);
    free_optTokenList(list, numItems);
-
    /*wait for updates*/
    if(w) {
       fprintf(stdout, "Waiting for updates. Press any key to exit.\n\n");
       getchar();
    }
+   free_sockets_library();
+   if(s != -1) closesocket(s);
    return 0;
 }
 

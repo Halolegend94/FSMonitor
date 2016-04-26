@@ -53,7 +53,7 @@ int __copy_networkData(clientData *data, clientData **copy){
 // ===========================================================================
 // cnl_add_client_node
 // ===========================================================================
-int cnl_add_client_node(clientNodeList *root, clientData *data, int numPaths, clientNode **addedNode){
+int cnl_add_client_node(clientNodeList *root, clientData *data, clientNode **addedNode){
    clientNode *newNode = malloc(sizeof(clientNode));
    if(!newNode){
       fprintf(stderr, "cnl_add_client_node: error while allocating memory.\n");
@@ -69,7 +69,7 @@ int cnl_add_client_node(clientNodeList *root, clientData *data, int numPaths, cl
       fprintf(stderr, "cnl_add_client_node: error while creating the linked list.\n");
       return PROG_ERROR;
    }
-   newNode->numRegisteredPaths = numPaths;
+   newNode->numRegisteredPaths = 0;
    if(root->first == NULL){
       root->first = newNode;
    }else{
@@ -77,6 +77,7 @@ int cnl_add_client_node(clientNodeList *root, clientData *data, int numPaths, cl
    }
    root->last = newNode;
    newNode->deletionMark = 0;
+   newNode->registeredPaths = NULL;
    *addedNode = newNode;
    return PROG_SUCCESS;
 }
@@ -103,6 +104,7 @@ int cnl_remove_client_node(clientNodeList *root, clientNode *node){
          free(current->networkData);
          ll_free(current->updates);
          free(current);
+
          return PROG_SUCCESS;
       }
       prev = current;
@@ -126,12 +128,13 @@ int cnl_add_notification(clientNode *client, char *notString){
 // cnl_signal_deletion
 // ===========================================================================
 int cnl_signal_deletion(clientNode *client, char *fld){
-   char *not = malloc(sizeof(char) * DEL_MSG_SIZE);
+   char formatted[] = "The path \"%s\" has been deleted and one of your registrations has been removed accordingly.\r\n.\r\n";
+   char *not = malloc(sizeof(char) * (strlen(fld) + strlen(formatted) + 1));
    if(!not){
       fprintf(stderr, "cnl_add_notification: error while allocating memory.\n");
       return PROG_ERROR;
    }
-   if(sprintf(not, "The path \"%s\" has been deleted and one of your registrations has been removed accordingly.\n", fld) < 0){
+   if(sprintf(not, formatted, fld) < 0){
       fprintf(stderr, "cnl_signal_deletion: error while creating a string.\n");
       return PROG_ERROR;
    }
@@ -163,6 +166,8 @@ int cnl_send_notifications(clientNodeList *list, char *udpPort){
       }
       linkedItem *prevItem = NULL;
       linkedItem *currItem = current->updates->first;
+      current->updates->first = NULL;
+      current->updates->last = NULL;
       while(currItem){
          if(send_data(s, currItem->item, strlen(currItem->item)) == PROG_ERROR){
             fprintf(stderr, "cnl_send_notifications: error while sending updates to a client.\n");
@@ -191,8 +196,6 @@ int cnl_send_notifications(clientNodeList *list, char *udpPort){
          free(tmp->networkData);
          free(tmp);
       }else{
-         current->updates->first = NULL;
-         current->updates->last = NULL;
          prev = current;
          current = current->next;
       }
