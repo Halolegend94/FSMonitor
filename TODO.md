@@ -1,6 +1,3 @@
 ##TODO:
-    - Fare la funzione di smaltimento notifiche e completare la struttura dati client register
-    - documentazione per le nuove funzioni
-    - notifications bucket, testare deletionMark
-    - notifications bucket, testare l'unmarking di un subtree
-    - code 202 non viene aggiornato l'alberos
+    - Registrazione non ricorsiva innestate vanno bene! cambiare struttura dati
+    - Fare il controllo di update unificato anche sui server DIO CANCARO

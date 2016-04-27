@@ -1,30 +1,7 @@
 #ifndef __CLIENTPATHTREE_
    #define __CLIENTPATHTREE__
-   #include <stdio.h>
-   #include <string.h>
-   #include <stdlib.h>
-   #include "myfile.h" //for tokenize path
+   #include "client_register_structures.h"
    #include "client_node_list.h"
-   #include "networking.h"
-   #include "common_definitions.h"
-   #include "received_notification.h"
-   
-   /*this struct represents a client registration to a path.*/
-   typedef struct _registration{
-      clientNode *client;
-      registrationMode mode;
-   } registration;
-
-   /*this struct represents a node in the client path tree. The client
-   path tree is used to store all the paths the clients want the server to monitor.*/
-   typedef struct _pathNode{
-      char *name;                   //name of the folder this node represents
-      struct _pathNode **children;   //subfolders
-      int numChildren;               //number of subfolders
-      registration **registrations;   //all the registrations for this path.
-      int numRegistrations;          //number of registrations for this path
-   } pathNode;
-
 
    // ===========================================================================
    // cpt_remove_client_registration
@@ -57,7 +34,7 @@
    // cpt_push_notification
    // ===========================================================================
    int cpt_push_notification(pathNode *root, receivedNotification *not, char *stringNot);
-   
+
    void cpt_print_tree(pathNode *root);
 
 #endif

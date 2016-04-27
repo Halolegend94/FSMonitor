@@ -1,25 +1,6 @@
 #ifndef __CLIENTNODELIST__
    #define __CLIENTNODELIST__
-   #include "networking.h"
-   #include "linked_list.h"
-   #include <stdio.h>
-   #include <stdlib.h>
-   #include <string.h>
-   #include "common_definitions.h"
-
-   typedef struct _clientNode{
-      clientData *networkData;
-      linkedList *updates;
-      char deletionMark; //used to tell if at the next notification dispatch event this clientNode must be removed
-      int numRegisteredPaths;
-      char **registeredPaths;
-      struct _clientNode *next;
-   } clientNode;
-
-   typedef struct _clientNodeList{
-      clientNode *first;
-      clientNode *last;
-   } clientNodeList;
+   #include "client_register_structures.h"
 
    // ===========================================================================
    // cnl_create

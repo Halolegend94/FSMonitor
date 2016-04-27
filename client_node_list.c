@@ -142,7 +142,6 @@ int cnl_signal_deletion(clientNode *client, char *fld){
       fprintf(stderr, "cnl_add_notification: error while adding a notification to a client's updates list.\n");
       return PROG_ERROR;
    }
-   client->numRegisteredPaths--;
    if(client->numRegisteredPaths == 0) client->deletionMark = 1;
    else if(client->numRegisteredPaths < 0){ //DEBUG PURPOSES
       fprintf(stderr, "cnl_signal_deletion: inconsistent number of registed path.\n");
@@ -211,12 +210,10 @@ void cnl_print_list(clientNodeList *list){
    printf("________CLIENT NODE LIST_____________\n\n");
    clientNode *current = list->first;
    while(current != NULL){
-      printf("NODE: %s - marked: %d\n", current->networkData->hostName, current->deletionMark);
-      printf("     Notification for this node:\n");
-      linkedItem *ci = current->updates->first;
-      while(ci){
-         printf("       - %s\n", (char *) ci->item);
-         ci = ci->next;
+      printf("NODE: %s - marked: %d\n   Reg path (%d)\n", current->networkData->hostName, current->deletionMark, current->numRegisteredPaths);
+      int i;
+      for(i = 0; i < current->numRegisteredPaths; i++){
+         printf("   -> %s %c\n", current->registeredPaths[i]->path, current->registeredPaths[i]->mode == RECURSIVE ? 'r' : 'R');
       }
       current = current->next;
    }

@@ -17,35 +17,24 @@ int main(int argc, char **argv){
        exit(0);
    }
 
+   initialize_server();  //include a critical section, the daemon starts in here
+
    //create the threadlock
    if(create_threadlock(&server.crLock) == PROG_ERROR){
       fprintf(stderr, "serverMonitor: error while creating the threadLock.\n");
-      exit(0);
+      terminate_server();
    }
 
-   //create the threadlock
+   //create the activelock
    if(create_threadlock(&server.activeLock) == PROG_ERROR){
       fprintf(stderr, "serverMonitor: error while creating the threadLock.\n");
-      exit(0);
-   }
-
-   /*to avoid a client can connect before the mapping structure is intialized, we acquire the lock*/
-   if(acquire_threadlock(server.crLock) == PROG_ERROR){
-      fprintf(stderr, "serverMonitor: error while acquiring the threadLock.\n");
-      exit(0);
+      terminate_server();
    }
 
    //Start the TCP server
    if(start_tcp_server() == PROG_ERROR){
       fprintf(stderr, "serverMonitor: error while starting the tcp server.\n");
-      exit(0);
-   }
-
-   initialize_server();  //include a critical section, the daemon starts in here
-
-   if(release_threadlock(server.crLock) == PROG_ERROR){
-      fprintf(stderr, "serverMonitor: releasing while creating the threadLock.\n");
-      exit(0);
+      terminate_server();
    }
 
    printf("Server (ID=%u) is active! Press CTRL+C to terminate the server.\n", server.ID);
@@ -117,28 +106,36 @@ int main(int argc, char **argv){
       //check if there are monitored paths that has been deleted
       int i; //counter
       if(numDeletedPaths > 0){
-         char **newPathList = malloc(sizeof(char *) * (server.serverPathsCount - numDeletedPaths));
-         if(!newPathList){
-            fprintf(stderr, "serverMonitor: error while allocating memory.\n");
-            terminate_server();
-         }
-         int j,k, found;
-         for(i = 0, k = 0; i < server.serverPathsCount; i++){
-            found = 0;
-            for(j = 0; j < numDeletedPaths; j++){
-               if(strcmp(server.serverPaths[i], deletedPaths[j]) == 0){
-                  found = 1;
-                  break;
+         if(server.serverPathsCount == numDeletedPaths){
+            for(i = 0; i < server.serverPathsCount; i++) free(server.serverPaths[i]);
+            free(server.serverPaths);
+            server.serverPaths = NULL;
+            server.serverPathsCount = 0;
+         }else{
+            char **newPathList = malloc(sizeof(char *) * (server.serverPathsCount - numDeletedPaths));
+            if(!newPathList){
+               fprintf(stderr, "serverMonitor: error while allocating memory.\n");
+               terminate_server();
+            }
+            int j,k, found;
+            for(i = 0, k = 0; i < server.serverPathsCount; i++){
+               found = 0;
+               for(j = 0; j < numDeletedPaths; j++){
+                  if(strcmp(server.serverPaths[i], deletedPaths[j]) == 0){
+                     found = 1;
+                     break;
+                  }
+               }
+               if(found){ //this one has not been deleted, so we copy it into the new array
+                  newPathList[k++] = server.serverPaths[i];
+               }else{
+                  free(server.serverPaths[i]); //has been deleted
                }
             }
-            if(found){ //this one has not been deleted, so we copy it into the new array
-               newPathList[k++] = server.serverPaths[i];
-            }else{
-               free(server.serverPaths[i]); //has been deleted
-            }
+            free(server.serverPaths);
+            server.serverPaths = newPathList;
+            server.serverPathsCount = server.serverPathsCount - numDeletedPaths;
          }
-         free(server.serverPaths);
-         server.serverPaths = newPathList;
          for(i = 0; i < numDeletedPaths; i++) free(deletedPaths[i]);
          free(deletedPaths);
       }

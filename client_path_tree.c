@@ -132,41 +132,49 @@ int cpt_add_client_registration(pathNode *root, char *path, clientNodeList *cnl,
    int i; //counter
    /*first we check if the client already receives notifications for this path*/
    int updated = 0;
+   registration *updateReg = NULL;
    clientNode *foundNode;
    if(cnl_exists_node(cnl, data, &foundNode)){
       for(i = 0; i < foundNode->numRegisteredPaths; i++){
-         if(strcmp(path, foundNode->registeredPaths[i]) == 0){
-            break; //this case will be handled later
-         }
-         else if(is_prefix(path, foundNode->registeredPaths[i])){
+         if(strcmp(path, foundNode->registeredPaths[i]->path) == 0 && mode == NONRECURSIVE){
+            foundNode->registeredPaths[i]->mode = mode;
+            return PROG_SUCCESS;
+         }else if(is_prefix(path, foundNode->registeredPaths[i]->path) && foundNode->registeredPaths[i]->mode == RECURSIVE){
             return PATH_ALREADY_REGISTERED;
-         }else if(is_prefix(foundNode->registeredPaths[i], path)){
-            //we must update the registration.
-            char *oldPath = foundNode->registeredPaths[i];
+         }else if(is_prefix(foundNode->registeredPaths[i]->path, path) && mode == RECURSIVE){
+            //we must update the registration. Delete the old one.
+            pathNode *father = foundNode->registeredPaths[i]->father;
+            if(father->numRegistrations == 1){
+               free(father->registrations[0]->path);
+               free(father->registrations[0]);
+               free(father->registrations);
+               father->registrations = NULL;
+            }else{
+               registration **newRegList = malloc(sizeof(registration *) * (father->numRegistrations - 1));
+               if(!newRegList){
+                  fprintf(stderr, "cpt_add_client_registration: error while allocating memory.\n");
+                  return PROG_ERROR;
+               }
+               int k, j;
+               for(k = 0, j = 0; k < father->numRegistrations; k++){
+                  if(father->registrations[k] != foundNode->registeredPaths[i]){
+                     newRegList[j++] = father->registrations[k];
+                  }else{
+                     //delete registration structure
+                     free(father->registrations[k]->path);
+                     free(father->registrations[k]);
+                  }
+               }
+               free(father->registrations);
+               father->registrations = newRegList;
+            }
+            father->numRegistrations--;
             foundNode->registeredPaths[i] = NULL;
-            if(tokenize_path(oldPath, &tokens, &numTokens) == PROG_ERROR){
-               fprintf(stderr, "cpt_add_client_registration: error while tokenizing the path.\n");
-               return PROG_ERROR;
-            }
-            int mustBeRemoved;
-            clientNode *nod;
-            int retRM = __support_remove_client_registration(root, tokens, numTokens, 0, &mustBeRemoved, data, &nod);
-            if(retRM == PROG_ERROR){
-               fprintf(stderr, "cpt_add_client_registration: error while updating a client registration.\n");
-               return PROG_ERROR;
-            }else if(retRM == PATH_NOT_REGISTERED){
-               fprintf(stderr, "cpt_add_client_registration: error while updating a client registration (PATH NOT REGISTERED).\n");
-               return PROG_ERROR;
-            }
-            int k;
-            for(k = 0; k < numTokens; k++) free(tokens[k]);
-            free(tokens);
-            free(oldPath);
             updated++;
          }
       }
       if(updated > 0){
-         char **newPathList = malloc(sizeof(char *) * (foundNode->numRegisteredPaths - updated + 1));
+         registration **newPathList = malloc(sizeof(registration *) * (foundNode->numRegisteredPaths - updated + 1));
          if(!newPathList){
             fprintf(stderr, "cpt_add_client_registration: error while allocating memory.\n");
             return PROG_ERROR;
@@ -177,11 +185,19 @@ int cpt_add_client_registration(pathNode *root, char *path, clientNodeList *cnl,
                newPathList[k++] = foundNode->registeredPaths[i];
             }
          }
-         newPathList[k] = path;
+         newPathList[k] = malloc(sizeof(registration));
+         if(!(newPathList[k])){
+            fprintf(stderr, "cpt_add_client_registration: error while allocating memory.\n");
+            return PROG_ERROR;
+         }
+         newPathList[k]->path = path;
+         newPathList[k]->mode = RECURSIVE;
+         newPathList[k]->client = foundNode;
+         newPathList[k]->father = NULL;
          free(foundNode->registeredPaths);
          foundNode->registeredPaths = newPathList;
          foundNode->numRegisteredPaths = foundNode->numRegisteredPaths - updated + 1;
-
+         updateReg = newPathList[k];
       }
    }else{
       if(cnl_add_client_node(cnl, data, &foundNode) == PROG_ERROR){
@@ -191,7 +207,6 @@ int cpt_add_client_registration(pathNode *root, char *path, clientNodeList *cnl,
    }
 
    //PART 2
-
    pathNode *added;
    if(tokenize_path(path, &tokens, &numTokens) == PROG_ERROR){
       fprintf(stderr, "cpt_add_client_registration: error while tokenizing the path.\n");
@@ -203,50 +218,42 @@ int cpt_add_client_registration(pathNode *root, char *path, clientNodeList *cnl,
       return PROG_ERROR;
    }
 
-   /*need to add a registration item. first we check if the client already monitors the path.
-   If so, we only update the "mode" field.*/
-   for(i = 0; i < added->numRegistrations; i++){
-      if(strcmp((added->registrations)[i]->client->networkData->hostName, data->hostName) == 0){
-         added->registrations[i]->mode = mode;
-         return PROG_SUCCESS;
+   if(updated){
+      //just need to add updateReg to registrations list
+      updateReg->father = added;
+      added->registrations = realloc(added->registrations, added->numRegistrations + 1);
+      if(!added->registrations){
+         fprintf(stderr, "cpt_add_client_registration: error while allocating memory.\n");
+         return PROG_ERROR;
       }
-   }
+      added->registrations[added->numRegistrations++] = updateReg;
 
-   if(!updated){
+   }else{
       foundNode->numRegisteredPaths++;
-      foundNode->registeredPaths = realloc(foundNode->registeredPaths, sizeof(char *) * foundNode->numRegisteredPaths);
+      foundNode->registeredPaths = realloc(foundNode->registeredPaths, sizeof(registration *) * foundNode->numRegisteredPaths);
       if(!foundNode->registeredPaths){
          fprintf(stderr, "cpt_add_client_registration: error while allocating memory.\n");
          return PROG_ERROR;
       }
-      foundNode->registeredPaths[foundNode->numRegisteredPaths - 1] = path;
-   }
-   /*now foundNode is a pointer to the clientNode structure to be associated with the registration*/
-   registration *nReg = malloc(sizeof(registration));
-   if(!nReg){
-      fprintf(stderr, "cpt_add_client_registration: error while allocating memory.\n");
-      return PROG_ERROR;
-   }
-   nReg->client = foundNode;
-   nReg->mode = mode;
-
-   if(added->numRegistrations == 0){
-      added->numRegistrations++;
-      added->registrations = malloc(sizeof(registration *));
-      if(!(added->registrations)){
+      registration *p = malloc(sizeof(registration));
+      if(!p){
          fprintf(stderr, "cpt_add_client_registration: error while allocating memory.\n");
          return PROG_ERROR;
       }
-      (added->registrations)[0] = nReg;
-   }else{
+      p->father = added;
+      p->client = foundNode;
+      p->path = path;
+      p->mode = mode;
+      foundNode->registeredPaths[foundNode->numRegisteredPaths - 1] = p;
+
       added->registrations = realloc(added->registrations, sizeof(registration *) * (added->numRegistrations + 1));
       if(!added->registrations){
          fprintf(stderr, "cpt_add_client_registration: error while reallocating memory.\n");
          return PROG_ERROR;
       }
-      added->registrations[added->numRegistrations++] = nReg;
+      added->registrations[added->numRegistrations++] = p;
+      return updated ? PATH_UPDATED : PROG_SUCCESS;
    }
-   return updated ? PATH_UPDATED : PROG_SUCCESS;
 }
 
 // ===========================================================================
@@ -309,8 +316,30 @@ int __support_remove_client_registration(pathNode *node, char **tokens, int numT
 
       *client = node->registrations[i]->client;
 
-      /*delete registration (but not the clientNode, we still need it)*/
+      /*remove the path from the client's registeredPaths list*/
+      if((*client)->numRegisteredPaths > 1){
+         registration **newRegPaths = malloc(sizeof(registration *) * ((*client)->numRegisteredPaths - 1));
+         if(!newRegPaths){
+            fprintf(stderr, "__support_remove_path: error while allocating memory.\n");
+            return PROG_ERROR;
+         }
+         int j, k;
+         for(j = 0, k = 0; j < (*client)->numRegisteredPaths; j++){
+            if((*client)->registeredPaths[j] != node->registrations[i]){
+               newRegPaths[k++] = (*client)->registeredPaths[j];
+            }
+         }
+         free((*client)->registeredPaths);
+         (*client)->registeredPaths = newRegPaths;
+      }else{
+         free((*client)->registeredPaths);
+         (*client)->registeredPaths = NULL;
+      }
+      (*client)->numRegisteredPaths--;
+      /*delete registration*/
+      free(node->registrations[i]->path);
       free(node->registrations[i]);
+      /*delete registration (but not the clientNode, we still need it)*/
       free(node->registrations);
       node->numRegistrations--;
       if(node->numRegistrations == 0){
@@ -348,30 +377,6 @@ int cpt_remove_client_registration(pathNode *root, char *path, clientNodeList *c
    }else if(retVal == PATH_NOT_REGISTERED){
       return PATH_NOT_REGISTERED;
    }
-   /*remove the path from the client's registeredPaths list*/
-   char **newRegPaths = NULL;
-   if(client->numRegisteredPaths > 1){
-      newRegPaths = malloc(sizeof(char *) * (client->numRegisteredPaths - 1));
-      if(!newRegPaths){
-         fprintf(stderr, "__support_remove_path: error while allocating memory.\n");
-         return PROG_ERROR;
-      }
-      int j, k;
-      for(j = 0, k = 0; j < client->numRegisteredPaths; j++){
-         if(strcmp(path, client->registeredPaths[j]) != 0){
-            newRegPaths[k++] = client->registeredPaths[j];
-         }else{
-            free(client->registeredPaths[j]);
-         }
-      }
-      free(client->registeredPaths);
-      client->registeredPaths = newRegPaths;
-   }else{
-      free(client->registeredPaths[0]);
-      free(client->registeredPaths);
-   }
-   client->numRegisteredPaths--;
-
    if(client->numRegisteredPaths == 0){
       /*there were just the path that has been deleted. So now there are no registered path for
       the client; we can delete its entry in the clientNodeList*/
@@ -395,15 +400,33 @@ int cpt_delete_subtree(pathNode *node, char *str){
       //send notification to clients
       int j;
       for(j = 0; j < node->numRegistrations; j++){
-            if(cnl_signal_deletion(node->registrations[j]->client, str) == PROG_ERROR){
+         clientNode *client = node->registrations[j]->client;
+            if(cnl_signal_deletion(client, str) == PROG_ERROR){
                   fprintf(stderr, "cnl_delete_subtree: error while signaling a deletion.\n");
                   return PROG_ERROR;
             }
+            /*delete registration from clientNode paths*/
+            registration **newList = malloc(sizeof(registration *) * (client->numRegisteredPaths -1));
+            if(!newList){
+               fprintf(stderr, "cnl_delete_subtree: error while allocating memory.\n");
+               return PROG_ERROR;
+            }
+            int k;
+            for(i = 0, k = 0; i < client->numRegisteredPaths; i++){
+               if(client->registeredPaths[i] != node->registrations[j]){
+                  newList[k++] = client->registeredPaths[i];
+               }
+            }
+            free(client->registeredPaths);
+            client->registeredPaths = newList;
+            client->numRegisteredPaths--;
+            /*delete registration*/
+            free(node->registrations[j]->path);
             free(node->registrations[j]);
       }
       //delete node
       if(j > 0) free(node->registrations);
-      if(i > 0) free(node->children);
+      if(node->numChildren > 0) free(node->children);
       free(node->name);
       free(node);
 }
@@ -473,7 +496,7 @@ int cpt_push_notification(pathNode *root, receivedNotification *not, char *strin
       pathNode *current = root;
       pathNode *child;
       int i = 0;
-      int maxIndex = not->isDir ? numTokens : numTokens - 1;
+      int maxIndex = numTokens - 1;
       int maxInternIndex = maxIndex - 1;
       /*now we get to the tree node corresponding to not->path, if any.
       During the visit, it must be checked whether there is a node along the
@@ -501,10 +524,15 @@ int cpt_push_notification(pathNode *root, receivedNotification *not, char *strin
       }
 
       /*there is one last case to handle. A branch of the filesystem is deleted and all the clients
-      registered for a subdirectory of that branch must be notified. If this is the case, child
+      registered for a subdirectory of that branch must be notified. If this is the case, we will set child
       represents the deleted node. All the clients registered to descendants of this node must be
       notified.*/
+      current = child;
       if(not->isDir == 1 && not->type == deletion){
+         printf(": %s\n", tokens[i]);
+         if(!cpt_contains_child(current, tokens[i], &child)){
+            return PROG_SUCCESS;
+         }
          if(cpt_delete_subtree(child, not->path) == PROG_ERROR){
                fprintf(stderr, "cpt_push_notification: error while removing a subtree.\n");
                return PROG_ERROR;

@@ -1,4 +1,4 @@
 ServerAddress > 127.0.0.1
-tcpPort > 8080
+tcpPort > 8081
 udpPort > 9090
 
