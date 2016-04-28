@@ -23,6 +23,7 @@
    typedef struct _notificationsBucket{
       int serverID;
       char deletionMark;
+      char updated;
       unsigned long off_path;
       unsigned long off_next; //offset to the next bucket
       unsigned long off_list; //offset to the notifications linked list
@@ -118,13 +119,14 @@
    //    -  start: the first bucket of the linked list
    //    -  serverID: the ID of the server
    //    -  path: the path string
-   //    -  buck: a pointer where will be stored a pointer to the bucket whose associated path must be modified
+   //    -  buck: a pointer where will be stored a pointer to a list of buckets whose associated path must be modified
+   //    -  numBuckets: number of pointers in the list.
    // Returns 1 and sets buck to NULL if the server already monitors the path, 1 if the server already monitors
    // a subfolder of the given directory and sets buck to point at the bucket of that subfolder. Returns 0
    // and sets buck to NULL if the server does not already monitor the path.
    //
    // ===========================================================================
-   int nb_exists_bucket(notificationsBucket *start, int serverID, char *path, notificationsBucket **buck);
+   int nb_exists_bucket(notificationsBucket *start, int serverID, char *path,  notificationsBucket ***buck, int *numBuckets);
 
    // ===========================================================================
    //

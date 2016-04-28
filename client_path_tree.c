@@ -198,6 +198,10 @@ int cpt_add_client_registration(pathNode *root, char *path, clientNodeList *cnl,
          foundNode->registeredPaths = newPathList;
          foundNode->numRegisteredPaths = foundNode->numRegisteredPaths - updated + 1;
          updateReg = newPathList[k];
+         if(cpt_clean_tree(root) == PROG_ERROR){
+            fprintf(stderr, "cpt_add_client_registration: error while cleaning the tree.\n");
+            return PROG_ERROR;
+         }
       }
    }else{
       if(cnl_add_client_node(cnl, data, &foundNode) == PROG_ERROR){

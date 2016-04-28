@@ -102,10 +102,11 @@ int register_server_path(mappingStructure *str, int serverID, char *path){
 
 	/*add the notification bucket*/
 	notificationsBucket *start = pmm_offset_to_pointer(str->off_notifications);
-	notificationsBucket *buck;
-	int ret = nb_exists_bucket(start, serverID, path, &buck);
+	notificationsBucket **bucks;
+	int numBuckets;
+	int ret = nb_exists_bucket(start, serverID, path, &bucks, &numBuckets);
 	if(ret == 1){
-			if(buck == NULL){
+			if(bucks == NULL){
 				return PATH_ALREADY_MONITORED;
 			}else{
 				/*add the necessary branch to the filesystree*/
@@ -116,45 +117,53 @@ int register_server_path(mappingStructure *str, int serverID, char *path){
 				}else if(ret == PATH_NOT_ACCESSIBLE){
 						return PATH_NOT_ACCESSIBLE; //path no longer available
 				}
-				/*need to update the bucket's associated path and change the marked node in the tree.
-				if it is not monitored by other servers*/
-				char *oPath = malloc(sizeof(char) * (strlen(pmm_offset_to_pointer(buck->off_path)) + 1));
-				if(!oPath){
-					fprintf(stderr, "register_server_path: error while allocating memory.\n");
-					return PROG_ERROR;
+				/*remove the isMonitored mark from the tree's nodes if they are not monitored by other servers*/
+				int l;
+				for(l = 0; l < numBuckets; l++){
+					if(l > 0){
+						bucks[l]->deletionMark = 1; 
+						bucks[l]->updated = 1;
+					} //buckets will be deleted at the next read of notifications
+					//check if the paths of the buckets that will be deleted are monitored by other servers
+					start = pmm_offset_to_pointer(start->off_next);
+					char *mpath = pmm_offset_to_pointer(bucks[l]->off_path);
+					int found = 0;
+					while(1){
+						if(strcmp(mpath, pmm_offset_to_pointer(start->off_path)) == 0 && bucks[l] != start){
+							found = 1;
+							break;
+						}
+						if(start->off_next == 0) break;
+						start = pmm_offset_to_pointer(start->off_next);
+					}
+					if(!found){
+						int lenP = strlen(mpath);
+						char *temp = malloc(sizeof(char) * lenP); //avoid the last "/"
+						if(!temp){
+							fprintf(stderr, "register_server_path: error while allocating memory.\n");
+							return PROG_ERROR;
+						}
+						strcpy(temp, mpath); //delete the last "/"
+						char **tokens;
+						int numTok;
+						if(tokenize_path(temp, &tokens, &numTok) == -1){
+							fprintf(stderr, "__first_scan: error while tokenizing the path.\n");
+							return PROG_ERROR;
+						}
+						if(__unmark_server_subtree(pmm_offset_to_pointer(str->off_fileSystemTree),
+							tokens, 0, numTok - 1) == PROG_ERROR)
+							return PROG_ERROR;
+						int i;
+						for(i = 0; i < numTok; i++) free(tokens[i]);
+						free(tokens);
+						free(temp);
+					}
 				}
-				strcpy(oPath, pmm_offset_to_pointer(buck->off_path));
-				if(nb_update_bucket_path(buck, path) == PROG_ERROR){
+				if(nb_update_bucket_path(bucks[0], path) == PROG_ERROR){
 					fprintf(stderr, "register_server_path: error while updating a bucket path.\n");
 					return PROG_ERROR;
 				}
-				//check if the path is monitored by other servers
-				start = pmm_offset_to_pointer(start->off_next);
-				int found = 0;
-				while(1){
-					if(strcmp(oPath, pmm_offset_to_pointer(start->off_path)) == 0){
-						found = 1;
-					}
-					if(start->off_next == 0) break;
-					start = pmm_offset_to_pointer(start->off_next);
-				}
-				if(!found){
-					int lenP = strlen(oPath);
-					oPath[lenP - 1] = '\0'; //delete the last "/"
-					char **tokens;
-					int numTok;
-					if(tokenize_path(oPath, &tokens, &numTok) == -1){
-						fprintf(stderr, "__first_scan: error while tokenizing the path.\n");
-						return PROG_ERROR;
-				 	}
-				 	if(__unmark_server_subtree(pmm_offset_to_pointer(str->off_fileSystemTree),
-						tokens, 0, numTok - 1) == PROG_ERROR)
-						return PROG_ERROR;
-			 		free(oPath);
-					int i;
-					for(i = 0; i < numTok; i++) free(tokens[i]);
-					free(tokens);
-				}
+				free(bucks);
 				return PATH_UPDATED;
 			}
 	}else{
@@ -705,7 +714,7 @@ int __scan(fstNode *currentNode, char *path, mappingStructure *str, int monitore
 int get_notifications(mappingStructure *str, int sid, receivedNotification ***list, int *count,
 	char ***deletedPaths, int *numDeletedPaths){
 	 if(nb_read_notifications(pmm_offset_to_pointer(str->off_notifications), list, count, sid,
-	  deletedPaths, numDeletedPaths) == -1){
+	  deletedPaths, numDeletedPaths) == PROG_ERROR){
 		 fprintf(stderr, "get_notifications: error while reading the notifications list.\n");
 		 return PROG_ERROR;
 	 }

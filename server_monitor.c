@@ -83,7 +83,7 @@ int main(int argc, char **argv){
       int numNotifications;
       char **deletedPaths;
       int numDeletedPaths;
-      if(get_notifications(server.structure, server.ID, &notificationsList, &numNotifications, &deletedPaths, &numDeletedPaths) == -1){
+      if(get_notifications(server.structure, server.ID, &notificationsList, &numNotifications, &deletedPaths, &numDeletedPaths) == PROG_ERROR){
          fprintf(stderr, "serverMonitor: error while getting the notifications list. Aborting execution..\n");
          cs_terminate_server();
       }
@@ -151,8 +151,8 @@ int main(int argc, char **argv){
             terminate_server();
          }
       }
-      //print_mappingstructure_state(structure);
-      print_client_register(server.clRegister);
+     print_mappingstructure_state(structure);
+     print_client_register(server.clRegister);
       //send all the notifications
       if(cnl_send_notifications((server.clRegister)->nodeList, server.udpPort) == PROG_ERROR){
          fprintf(stderr, "serverMonitor: error while sending notifications to clients.\n");

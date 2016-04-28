@@ -25,8 +25,8 @@ int start_tcp_server(){
 void *__tcp_server_function(void *arg){
    /*create a server socket. This function is the only one that accesses
    the tcpPort value, so no need for mutual exlusion.*/
-   int s = create_server_socket(server.tcpPort, server.maxClientConnections, SOCK_STREAM);
-   if(s == PROG_ERROR){
+   server.tcpSocket = create_server_socket(server.tcpPort, server.maxClientConnections, SOCK_STREAM);
+   if(server.tcpSocket == PROG_ERROR){
       fprintf(stderr, "tcp_server_function: error while creating the server socket. Terminating the server.\n");
       terminate_server();
    }
@@ -34,16 +34,14 @@ void *__tcp_server_function(void *arg){
    //LOOP FOREVER
    while(1){
       clientData *d;
-      int c = accept_connection(s, &d);
+      int c = accept_connection(server.tcpSocket, &d);
       if(c == PROG_ERROR){
          fprintf(stderr, "tcp_server_function: error while accepting a connection. Terminating the server.\n");
-         closesocket(s);
          terminate_server();
       }
       CRHParams *param = malloc(sizeof(CRHParams));
       if(!param){
          fprintf(stderr, "tcp_server_function: error while allocating memory.\n");
-         closesocket(s);
          closesocket(c);
          terminate_server();
       }
@@ -52,7 +50,6 @@ void *__tcp_server_function(void *arg){
       pToThread p;
       if(create_thread(client_request_handler, (void *) param, &p) == PROG_ERROR){
          fprintf(stderr, "__tcp_server_function: error while creating the handler thread.\n");
-         closesocket(s);
          closesocket(c);
          terminate_server();
       }
@@ -303,18 +300,44 @@ void *client_request_handler(void *p){
             terminate_server();
          }else if(regValue == PATH_UPDATED){
             int i;
+            int increment = 10;
+            char **newPList = malloc(sizeof(char *) * increment);
+            if(!newPList){
+               fprintf(stderr, "client_request_handler: error while allocating memory.\n");
+               if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
+               closesocket(params->sock);
+               terminate_server();
+            }
+            int k = 0;
             for(i = 0; i < server.serverPathsCount; i++){
-               if(is_prefix(path, server.serverPaths[i])){
-                  server.serverPaths[i] = realloc(server.serverPaths[i], sizeof(char) * (strlen(path)+1));
-                  if(!server.serverPaths[i]){
-                     fprintf(stderr, "client_request_handler: error while allocating memory.\n");
-                     if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
-                     closesocket(params->sock);
-                     terminate_server();
+               if(!is_prefix(server.serverPaths[i], path)){
+                  if(k == increment - 1){
+                     increment+=10;
+                     newPList = realloc(newPList, sizeof(char *) * (increment));
+                     if(!newPList){
+                        fprintf(stderr, "client_request_handler: error while allocating memory.\n");
+                        if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
+                        closesocket(params->sock);
+                        terminate_server();
+                     }
                   }
-                  strcpy(server.serverPaths[i], path);
+                  newPList[k++] = server.serverPaths[i];
+               }else{
+                  free(server.serverPaths[i]);
                }
             }
+            newPList[k] = malloc(sizeof(char) * (strlen(path) + 1));
+            if(!(newPList[k])){
+               fprintf(stderr, "client_request_handler: error while allocating memory.\n");
+               if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
+               closesocket(params->sock);
+               terminate_server();
+            }
+            strcpy(newPList[k], path);
+            free(server.serverPaths);
+            server.serverPaths = newPList;
+            server.serverPathsCount = ++k;
+
          }else if(regValue == PROG_SUCCESS){
             //add the path to the list
             server.serverPathsCount++;
