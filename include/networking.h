@@ -21,6 +21,7 @@
       #include <ws2tcpip.h>
       #include <mstcpip.h>
       #include <windows.h>
+      #include "win/utilities.h"
       #pragma comment(lib, "Ws2_32.lib") //link the library
       #define ERROR_CODE INVALID_SOCKET
    #endif

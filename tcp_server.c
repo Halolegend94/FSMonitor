@@ -10,6 +10,10 @@ void *client_request_handler(void *arg);
 //start_tcp_server
 // ===========================================================================
 int start_tcp_server(){
+   if(load_sockets_library() == PROG_ERROR){
+      fprintf(stderr, "start_tcp_server: error while loading the sockets library.\n");
+      return PROG_ERROR;
+   }
    create_client_register(&(server.clRegister));
    pToThread p;
    int returnValue = create_thread(__tcp_server_function, NULL, &p);
@@ -17,6 +21,7 @@ int start_tcp_server(){
       fprintf(stderr, "start_tcp_server: error while creating the thread.\n");
       return PROG_ERROR;
    }
+   return PROG_SUCCESS;
 }
 
 // ===========================================================================
@@ -426,4 +431,5 @@ void *client_request_handler(void *p){
       }
       return NULL; //this thread will die
    }
+   return NULL;
 }

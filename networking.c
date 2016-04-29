@@ -134,18 +134,22 @@ int accept_connection(int srv, struct _clientData **clt){
 int create_connection(char *host, char *port, int type){
    int sock;
    struct addrinfo Hints, *AddrInfo;
+   memset(&Hints, 0, sizeof (Hints));
+   Hints.ai_family = AF_UNSPEC;
+   Hints.ai_socktype = type;
+   int retVal = getaddrinfo(host, port, &Hints, &AddrInfo);
+   if(retVal != 0){
+      fprintf(stderr, "create_connection: error while retrieving the address for the host.\n");
+      return -1;
+   }
 
-    memset(&Hints, 0, sizeof (Hints));
-    Hints.ai_family = PF_UNSPEC;
-    Hints.ai_socktype = type;
-    int retVal = getaddrinfo(host, port, &Hints, &AddrInfo);
-    if(retVal != 0){
-        fprintf(stderr, "create_connection: error while retrieving the address for the host.\n");
-        return -1;
-    }
-
-    sock = socket(AddrInfo->ai_family, AddrInfo->ai_socktype, AddrInfo->ai_protocol);
-
+   sock = socket(AddrInfo->ai_family, AddrInfo->ai_socktype, AddrInfo->ai_protocol);
+   /*set the dual stack mode*/
+   int val = 0;
+   if(setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY,(char *) &val, sizeof(int)) == -1){
+      fprintf(stderr, "create_server_socket: error while setting the dual stack mode.\n");
+      return -1;
+   }
    if(sock== ERROR_CODE){
       fprintf(stderr, "create_connection: error while creating the socket.\n");
       return -1;

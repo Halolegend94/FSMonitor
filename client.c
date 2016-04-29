@@ -1,5 +1,4 @@
 #include "include/client.h"
-#include "include/signal_handler.h"
 #define NUM_PWV 6
 #define MAX_COMMAND_NAME_LEN 15
 #define UDP_BUFF_SIZE 512

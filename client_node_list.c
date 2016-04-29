@@ -160,6 +160,7 @@ int cnl_send_notifications(clientNodeList *list, char *udpPort){
       /*create udp socket*/
       int s = create_connection(current->networkData->hostName, udpPort, SOCK_DGRAM);
       if(s == PROG_ERROR){
+         printf("ADDR: %s\n", current->networkData->hostName);
          fprintf(stderr, "cnl_send_notifications: error while creating an UDP socket.\n");
          return PROG_ERROR;
       }

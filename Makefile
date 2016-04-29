@@ -33,16 +33,16 @@ LLINK=-lm
 #
 ####################################################################################################
 
-server-win : server_monitor.c tcp_server.c win\utilities.c mem_management.obj filesystree.obj mapping_structure.obj \
+server-win : server_monitor.c tcp_server.c mem_management.obj filesystree.obj mapping_structure.obj \
 	mapping.obj myfile.obj settings_parser.obj syncmapping.obj notifications_bucket.obj utilities.obj \
 	daemon.obj thread.obj time_utilities.obj received_notification.obj signal_handler.obj \
 	server_commons.obj client_register.obj client_node_list.obj client_path_tree.obj linked_list.obj \
-	thread_lock.obj
+	thread_lock.obj networking.obj utilities.obj
 	$(WC) $(WNAME)"server" server_monitor.c tcp_server.c mem_management.obj filesystree.obj daemon.obj thread.obj  \
 		mapping_structure.obj mapping.obj myfile.obj settings_parser.obj syncmapping.obj \
-		notifications_bucket.obj utilities.obj time_utilities.obj received_notification.obj \
+		notifications_bucket.obj time_utilities.obj received_notification.obj \
 		signal_handler.obj server_commons.obj client_register.obj client_node_list.obj \
-		client_path_tree.obj linked_list.obj thread_lock.obj
+		client_path_tree.obj linked_list.obj thread_lock.obj networking.obj utilities.obj
 
 client-win : client.c settings_parser.obj params_parser.obj networking.obj thread.obj
 	$(WC) $(WNAME)"client" client.c settings_parser.obj params_parser.obj networking.obj thread.obj
