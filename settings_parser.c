@@ -5,7 +5,6 @@
 
 /*token names*/
 #define WORD 0
-#define NUMBER 1
 #define SEPARATOR 2
 #define ENDLINE 3
 
@@ -144,7 +143,7 @@ int __line(setting *set){
 			"finished.\n", __num_lines);
 			return -1;
 		}
-		if(__curr_token.name != WORD && __curr_token.name != NUMBER){
+		if(__curr_token.name != WORD){
 			fprintf(stderr, "Syntax error while parsing the setting file (line %d): value is " \
 			"missing.\n", __num_lines);
 			return -1;
@@ -226,28 +225,16 @@ int __get_next_token(){
 			__current = fgetc(__pFileSettings);
 			return 0;
 
-		}else if(isalpha(__current)){					//WORD
+		}else if(isalnum(__current) || __current == ':'){					//WORD
 			do{
 				temp[charsRead++] = __current;
 				if(__check_space(charsRead + 2, &currentMaxLen, &temp) == -1) return -1;
 				__current = fgetc(__pFileSettings);
-			}while(isalnum(__current));
+			}while(isalnum(__current) || __current == ':' || __current == '.');
 			temp[charsRead] = '\0';
 			__curr_token.name = WORD;
 			__curr_token.value = temp;
 			return 0;
-
-		}else if(isdigit(__current) || __current == ':'){					//NUMBER or IP
-			do{
-				temp[charsRead++] = __current;
-				if(__check_space(charsRead + 2, &currentMaxLen, &temp) == -1) return -1; //if there is not sufficient space
-				__current = fgetc(__pFileSettings);
-			}while(isdigit(__current) || __current == ':' || __current == '.');
-			temp[charsRead] = '\0';
-		__curr_token.name = NUMBER;
-			__curr_token.value = temp;
-			return 0;
-
 		}else if(__current == '#'){					//Ignore comments
 			do{
 				__current = fgetc(__pFileSettings);
