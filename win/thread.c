@@ -2,7 +2,7 @@
 #include <windows.h>
 
 struct thread {
-	HANDLE handler;
+	HANDLE handle;
 };
 
 //wrapper structure for the arguments
@@ -40,8 +40,8 @@ int create_thread(void *(*pFunction)(void *), void *arg, struct thread **thr) {
 	}
 	func->arg = arg;
 	func->pFunction = pFunction;
-	(*thr)->handler = CreateThread(NULL, 0, __wrapperTFunction, func, 0, NULL);
-	if((*thr)->handler == NULL){
+	(*thr)->handle = CreateThread(NULL, 0, __wrapperTFunction, func, 0, NULL);
+	if((*thr)->handle == NULL){
 		fprintf(stderr, "create_thread: error while creating the thread.\n");
 		return -1;
 	}
@@ -54,4 +54,12 @@ int create_thread(void *(*pFunction)(void *), void *arg, struct thread **thr) {
 int thread_sleep(int seconds){
 	Sleep(seconds * 1000);
 	return 0;
+}
+
+// ===========================================================================
+// terminate_thread
+// ===========================================================================
+int terminate_thread(struct thread *t){
+	if(TerminateThread(t->handle, 0) == 0) return -1;
+	else return 0;
 }

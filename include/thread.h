@@ -31,4 +31,14 @@
 	// ===========================================================================
 	int thread_sleep(int seconds);
 
+	// ===========================================================================
+	//
+	// terminate_thread
+	// Description: terminates the execution af a thread.
+	// Params:
+	// 	-	t: a thread structure created during the create_thread called
+	// Returns 0 in case of success, -1 otherwise
+	//
+	// ===========================================================================
+	int terminate_thread(pToThread t);
 #endif

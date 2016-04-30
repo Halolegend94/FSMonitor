@@ -4,7 +4,7 @@
 
 /*thread structure*/
 struct thread{
-   pthread_t handler;
+   pthread_t handle;
 };
 
 // ===========================================================================
@@ -16,7 +16,7 @@ int create_thread(void *(*pFunction)(void*), void *arg, struct thread **thr){
       fprintf(stderr, "create_thread: error while allocating memory.\n");
       return -1;
    }
-   int ret = pthread_create(&((*thr)->handler), NULL, pFunction, arg);
+   int ret = pthread_create(&((*thr)->handle), NULL, pFunction, arg);
    if(ret != 0){
       fprintf(stderr, "create_thread: error while creating the thread (code %d)\n", ret);
       return -1;
@@ -30,4 +30,12 @@ int create_thread(void *(*pFunction)(void*), void *arg, struct thread **thr){
 int thread_sleep(int seconds){
    struct timespec spec = {seconds, 0};
    return nanosleep(&spec, NULL);
+}
+
+// ===========================================================================
+// terminate_thread
+// ===========================================================================
+int terminate_thread(struct thread *t){
+   if(pthread_cancel(t->handle) == 0) return 0;
+   else return -1;
 }

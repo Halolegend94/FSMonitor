@@ -226,6 +226,7 @@ int main(int argc, char **argv){
 
    /*create UDP server socket */
    int s = -1;
+   pToThread p = NULL;
    if(w){
       s = create_server_socket(myClient.udpPort, 0, SOCK_DGRAM);
       if(s == -1){
@@ -233,7 +234,6 @@ int main(int argc, char **argv){
          exit(0);
       }
       /*start the UDP server on another thread*/
-      pToThread p;
       int returnValue = create_thread(client_server,(void *)&s, &p);
       if(returnValue == -1){
          fprintf(stderr, "start_tcp_server: error while creating the thread.\n");
@@ -255,9 +255,9 @@ int main(int argc, char **argv){
    if(w) {
       fprintf(stdout, "Waiting for updates. Press any key to exit.\n\n");
       getchar();
+      terminate_thread(p);
    }
    free_sockets_library();
-   if(s != -1) closesocket(s);
    return 0;
 }
 
