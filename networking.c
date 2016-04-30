@@ -1,5 +1,4 @@
 #include "include/networking.h"
-
 #define REPRESENTATION_LEN 40
 #define DEFAULT_PROTOCOL 0
 
@@ -137,17 +136,27 @@ int create_connection(char *host, char *port, int type){
    memset(&Hints, 0, sizeof (Hints));
    Hints.ai_family = AF_UNSPEC;
    Hints.ai_socktype = type;
+   Hints.ai_flags = AI_NUMERICHOST;
+   Hints.ai_protocol = 0;
+   Hints.ai_canonname = NULL;
+   Hints.ai_addr = NULL;
+   Hints.ai_next = NULL;
+   
    int retVal = getaddrinfo(host, port, &Hints, &AddrInfo);
    if(retVal != 0){
       fprintf(stderr, "create_connection: error while retrieving the address for the host.\n");
       return -1;
    }
 
-   sock = socket(AddrInfo->ai_family, AddrInfo->ai_socktype, AddrInfo->ai_protocol);
+   sock = socket(AF_INET6, type, DEFAULT_PROTOCOL);
+   if(sock == ERROR_CODE){
+      fprintf(stderr, "create_server_socket: error while creating the server socket.\n");
+      return -1;
+   }
    /*set the dual stack mode*/
    int val = 0;
    if(setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY,(char *) &val, sizeof(int)) == -1){
-      fprintf(stderr, "create_server_socket: error while setting the dual stack mode.\n");
+      fprintf(stderr, "create connection: error while setting the dual stack mode.\n");
       return -1;
    }
    if(sock== ERROR_CODE){
@@ -157,8 +166,10 @@ int create_connection(char *host, char *port, int type){
 
    if(connect(sock, AddrInfo->ai_addr, AddrInfo->ai_addrlen) == -1){
       fprintf(stderr, "create_connection: error while connecting to the host.\n");
+      perror("ERR: ");
       return -1;
    }
+
    freeaddrinfo(AddrInfo);
    return sock;
 }

@@ -29,11 +29,12 @@
    // ===========================================================================
    int cpt_remove_child(pathNode *father, pathNode *child);
 
-
    // ===========================================================================
    // cpt_push_notification
    // ===========================================================================
    int cpt_push_notification(pathNode *root, receivedNotification *not, char *stringNot);
+
+   int cpt_clean_tree(pathNode *node);
 
    void cpt_print_tree(pathNode *root);
 
