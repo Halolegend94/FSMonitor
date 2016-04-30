@@ -134,9 +134,9 @@ int create_connection(char *host, char *port, int type){
    int sock;
    struct addrinfo Hints, *AddrInfo;
    memset(&Hints, 0, sizeof (Hints));
-   Hints.ai_family = AF_INET6;
+   Hints.ai_family = AF_UNSPEC;
    Hints.ai_socktype = type;
-   Hints.ai_flags = AI_NUMERICHOST | AI_V4MAPPED;
+   Hints.ai_flags = AI_NUMERICHOST;
    Hints.ai_protocol = 0;
    Hints.ai_canonname = NULL;
    Hints.ai_addr = NULL;
@@ -148,17 +148,12 @@ int create_connection(char *host, char *port, int type){
       return -1;
    }
 
-   sock = socket(AF_INET6, type, DEFAULT_PROTOCOL);
+   sock = socket(AddrInfo->ai_family, type, DEFAULT_PROTOCOL);
    if(sock == ERROR_CODE){
       fprintf(stderr, "create_server_socket: error while creating the server socket.\n");
       return -1;
    }
-   /*set the dual stack mode*/
-   int val = 0;
-   if(setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY,(char *) &val, sizeof(int)) == -1){
-      fprintf(stderr, "create connection: error while setting the dual stack mode.\n");
-      return -1;
-   }
+
    if(sock== ERROR_CODE){
       fprintf(stderr, "create_connection: error while creating the socket.\n");
       return -1;
