@@ -134,14 +134,14 @@ int create_connection(char *host, char *port, int type){
    int sock;
    struct addrinfo Hints, *AddrInfo;
    memset(&Hints, 0, sizeof (Hints));
-   Hints.ai_family = AF_UNSPEC;
+   Hints.ai_family = AF_INET6;
    Hints.ai_socktype = type;
-   Hints.ai_flags = AI_NUMERICHOST;
+   Hints.ai_flags = AI_NUMERICHOST | AI_V4MAPPED;
    Hints.ai_protocol = 0;
    Hints.ai_canonname = NULL;
    Hints.ai_addr = NULL;
    Hints.ai_next = NULL;
-   
+
    int retVal = getaddrinfo(host, port, &Hints, &AddrInfo);
    if(retVal != 0){
       fprintf(stderr, "create_connection: error while retrieving the address for the host.\n");
@@ -166,7 +166,6 @@ int create_connection(char *host, char *port, int type){
 
    if(connect(sock, AddrInfo->ai_addr, AddrInfo->ai_addrlen) == -1){
       fprintf(stderr, "create_connection: error while connecting to the host.\n");
-      perror("ERR: ");
       return -1;
    }
 

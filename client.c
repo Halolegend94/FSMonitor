@@ -79,7 +79,7 @@ int execute_command(optToken *comm){
    /*create a tcp socket*/
    int s = create_connection(myClient.serverAddress, myClient.tcpPort, SOCK_STREAM);
    if(s == -1){
-      fprintf(stderr, "tcp_server_function: error while creating the server socket. Terminating the client.\n");
+      fprintf(stderr, "execute_command: error while creating the server socket. Terminating the client.\n");
       exit(0);
    }
    char *buffer = malloc(sizeof(char) * (strlen(comm->value) + MAX_COMMAND_NAME_LEN + 1)); //9 chars for the command name
