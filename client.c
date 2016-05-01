@@ -134,7 +134,7 @@ int execute_command(optToken *comm){
       free(buffer);
       return 0;
    }else if(strcmp(buffer, "201") == 0){
-      fprintf(stdout, "Code 201: the specified folder is a subfolder of a directory already registered.\n");
+      fprintf(stdout, "Code 201: you are already registered for the specified folder.\n");
       return 0;
    }else if(strcmp(buffer, "202") == 0){
       fprintf(stdout, "Code 202: the specified folder replaced an existent registration to a subfolder.\n");
