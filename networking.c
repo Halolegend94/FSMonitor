@@ -154,6 +154,15 @@ int create_connection(char *host, char *port, int type){
       return -1;
    }
 
+   if(AddrInfo->ai_family == AF_INET6){
+      /*set the dual stack mode*/
+      int val = 0;
+      if(setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY,(char *) &val, sizeof(int)) == -1){
+         fprintf(stderr, "create_server_socket: error while setting the dual stack mode.\n");
+         return -1;
+      }
+   }
+   
    if(sock== ERROR_CODE){
       fprintf(stderr, "create_connection: error while creating the socket.\n");
       return -1;
