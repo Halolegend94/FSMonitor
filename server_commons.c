@@ -21,7 +21,7 @@ void terminate_server(){
 // ===========================================================================
 void cs_terminate_server(){
    printf("\nTerminating server..");
-   //closesocket(server.tcpSocket);
+   terminate_thread(server.tcpServer);
    (server.structure)->serverCounter--;
    if((server.structure)->daemonServer == server.ID) (server.structure)->daemonServer = -1;
    if(unregister_server(server.structure, server.ID, server.serverPaths, server.serverPathsCount) == PROG_ERROR){

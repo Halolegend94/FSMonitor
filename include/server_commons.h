@@ -33,7 +33,7 @@
        unsigned long long startUpTime; //the time the server was started
        pThreadLock crLock;           //lock to sync accesses to shared resources inside the single process
        pThreadLock activeLock;       //lock used to guard over active variable
-       int tcpSocket;                //server socket Descriptor
+       pToThread tcpServer;                //server socket Descriptor
        clientRegister *clRegister;    //the data structure with client registrations.
    } serverStructure;
 

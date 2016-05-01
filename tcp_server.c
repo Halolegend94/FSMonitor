@@ -15,8 +15,7 @@ int start_tcp_server(){
       return PROG_ERROR;
    }
    create_client_register(&(server.clRegister));
-   pToThread p;
-   int returnValue = create_thread(__tcp_server_function, NULL, &p);
+   int returnValue = create_thread(__tcp_server_function, NULL, &(server.tcpServer));
    if(returnValue == PROG_ERROR){
       fprintf(stderr, "start_tcp_server: error while creating the thread.\n");
       return PROG_ERROR;
@@ -30,8 +29,8 @@ int start_tcp_server(){
 void *__tcp_server_function(void *arg){
    /*create a server socket. This function is the only one that accesses
    the tcpPort value, so no need for mutual exlusion.*/
-   server.tcpSocket = create_server_socket(server.tcpPort, server.maxClientConnections, SOCK_STREAM);
-   if(server.tcpSocket == PROG_ERROR){
+   int s = create_server_socket(server.tcpPort, server.maxClientConnections, SOCK_STREAM);
+   if(s == PROG_ERROR){
       fprintf(stderr, "tcp_server_function: error while creating the server socket. Terminating the server.\n");
       terminate_server();
    }
@@ -39,7 +38,7 @@ void *__tcp_server_function(void *arg){
    //LOOP FOREVER
    while(1){
       clientData *d;
-      int c = accept_connection(server.tcpSocket, &d);
+      int c = accept_connection(s, &d);
       if(c == PROG_ERROR){
          fprintf(stderr, "tcp_server_function: error while accepting a connection. Terminating the server.\n");
          terminate_server();
