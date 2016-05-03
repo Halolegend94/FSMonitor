@@ -28,7 +28,7 @@ int syncmapping_createlock(struct syncMapping **lock){
 // ===========================================================================
 int syncmapping_acquire(struct syncMapping *lock) {
    DWORD ret = WaitForSingleObject(lock->mutex, INFINITE);
-   if(ret != WAIT_OBJECT_0){
+   if(ret == WAIT_FAILED){
       fprintf(stderr, "syncmapping_acquire: error while acquiring the mutex.\n");
       return -1;
    }

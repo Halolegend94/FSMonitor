@@ -28,7 +28,7 @@ int create_threadlock(struct threadLock **lock){
 // ===========================================================================
 int acquire_threadlock(struct threadLock *lock) {
    DWORD ret = WaitForSingleObject(lock->mutex, INFINITE);
-   if(ret != WAIT_OBJECT_0){
+   if(ret == WAIT_FAILED){
       fprintf(stderr, "create_threadlock: error while acquiring the mutex.\n");
       return PROG_ERROR;
    }
