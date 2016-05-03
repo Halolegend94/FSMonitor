@@ -231,7 +231,7 @@ int cpt_add_client_registration(pathNode *root, char *path, clientNodeList *cnl,
          return PROG_ERROR;
       }
       added->registrations[added->numRegistrations++] = updateReg;
-
+      return PATH_UPDATED;
    }else{
       foundNode->numRegisteredPaths++;
       foundNode->registeredPaths = realloc(foundNode->registeredPaths, sizeof(registration *) * foundNode->numRegisteredPaths);
@@ -256,7 +256,7 @@ int cpt_add_client_registration(pathNode *root, char *path, clientNodeList *cnl,
          return PROG_ERROR;
       }
       added->registrations[added->numRegistrations++] = p;
-      return updated ? PATH_UPDATED : PROG_SUCCESS;
+      return PROG_SUCCESS;
    }
 }
 
@@ -398,7 +398,10 @@ int cpt_remove_client_registration(pathNode *root, char *path, clientNodeList *c
 int cpt_delete_subtree(pathNode *node, char *str){
       int i;
       for(i = 0; i < node->numChildren; i++){
-            cpt_delete_subtree(node->children[i], str);
+            int res = cpt_delete_subtree(node->children[i], str);
+            if(res == PROG_ERROR){
+               return PROG_ERROR;
+            }
       }
       //delete node
       //send notification to clients
@@ -433,6 +436,7 @@ int cpt_delete_subtree(pathNode *node, char *str){
       if(node->numChildren > 0) free(node->children);
       free(node->name);
       free(node);
+      return PROG_SUCCESS;
 }
 
 // ===========================================================================

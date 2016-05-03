@@ -151,8 +151,8 @@ int main(int argc, char **argv){
          }
          free(strNot);
       }
-      print_mappingstructure_state(structure);
-      print_client_register(server.clRegister);
+      //print_mappingstructure_state(structure);
+      //print_client_register(server.clRegister);
       //send all the notifications
       if(cnl_send_notifications((server.clRegister)->nodeList, server.udpPort) == PROG_ERROR){
          fprintf(stderr, "serverMonitor: error while sending notifications to clients.\n");

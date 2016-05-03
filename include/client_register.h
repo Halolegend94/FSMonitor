@@ -23,6 +23,7 @@
    //    -  clReg a pointer to a location where a pointer to the allocated structure
    //       will be saved.
    // Returns -1 in case of error, 0 otherwise
+   //
    // ===========================================================================
    int create_client_register(clientRegister **clReg);
 

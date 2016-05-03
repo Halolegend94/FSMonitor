@@ -18,12 +18,18 @@ int start_tcp_server(){
       fprintf(stderr, "start_tcp_server: error while creating the client register.\n");
       return PROG_ERROR;
    }
-   int s = create_server_socket(server.tcpPort, server.maxClientConnections, SOCK_STREAM);
-   if(s == PROG_ERROR){
-      fprintf(stderr, "tcp_server_function: error while creating the server socket. Terminating the server.\n");
+   int *s = malloc(sizeof(int));
+   if(!s){
+      fprintf(stderr, "start_tcp_server: error while allocating memory.\n");
       return PROG_ERROR;
    }
-   int returnValue = create_thread(__tcp_server_function, (void *)&s, &(server.tcpServer));
+   *s = create_server_socket(server.tcpPort, server.maxClientConnections, SOCK_STREAM);
+   if(*s == PROG_ERROR){
+      fprintf(stderr, "start_tcp_server: error while creating the server socket. Terminating the server.\n");
+      return PROG_ERROR;
+   }
+
+   int returnValue = create_thread(__tcp_server_function, (void *) s, &(server.tcpServer));
    if(returnValue == PROG_ERROR){
       fprintf(stderr, "start_tcp_server: error while creating the thread.\n");
       return PROG_ERROR;
@@ -35,22 +41,23 @@ int start_tcp_server(){
 // tcp_server_function [PRIVATE]
 // ===========================================================================
 void *__tcp_server_function(void *arg){
-   /*create a server socket. This function is the only one that accesses
-   the tcpPort value, so no need for mutual exlusion.*/
-  int s = *((int *)arg);
-
+  int s = *((int *) arg);
    //LOOP FOREVER
    while(1){
       clientData *d;
       int c = accept_connection(s, &d);
       if(c == PROG_ERROR){
          fprintf(stderr, "tcp_server_function: error while accepting a connection. Terminating the server.\n");
+         free(arg);
+         server.tcpServer = NULL;
          terminate_server();
       }
       CRHParams *param = malloc(sizeof(CRHParams));
       if(!param){
          fprintf(stderr, "tcp_server_function: error while allocating memory.\n");
          closesocket(c);
+         free(arg);
+         server.tcpServer = NULL;
          terminate_server();
       }
       param->data = d;
@@ -59,6 +66,8 @@ void *__tcp_server_function(void *arg){
       if(create_thread(client_request_handler, (void *) param, &p) == PROG_ERROR){
          fprintf(stderr, "__tcp_server_function: error while creating the handler thread.\n");
          closesocket(c);
+         free(arg);
+         server.tcpServer = NULL;
          terminate_server();
       }
    }

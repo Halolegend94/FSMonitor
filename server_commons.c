@@ -29,7 +29,7 @@ void cs1_terminate_server(){
 // ===========================================================================
 void cs2_terminate_server(){
    printf("\nTerminating server..");
-   terminate_thread(server.tcpServer);
+   if(server.tcpServer != NULL) terminate_thread(server.tcpServer);
    (server.structure)->serverCounter--;
    if((server.structure)->daemonServer == server.ID) (server.structure)->daemonServer = -1;
    if(unregister_server(server.structure, server.ID, server.serverPaths, server.serverPathsCount) == PROG_ERROR){
