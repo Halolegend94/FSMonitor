@@ -181,16 +181,7 @@ void *client_request_handler(void *p){
    Step 3: Recognize and execute command
    ***********************************************************/
    if(commandCode != DISC){
-      //check if the directory is expressed as absolute path. If not, build the absolute path
-      if(!is_absolute_path(path)){
-         path = convert_abs_path(path);
-         if(!path){
-            fprintf(stderr, "client_request_handler: error while converting relative to absolute path.\n");
-            if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
-            closesocket(params->sock);
-            terminate_server();
-         }
-      }
+    
       int len = strlen(path);
       if(path[len-1] == '\\' || path[len-1] == '/') path[len-1] = '\0';
       //check if the directory exists

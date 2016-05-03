@@ -117,7 +117,13 @@ int cnl_remove_client_node(clientNodeList *root, clientNode *node){
 // cnl_add_notification
 // ===========================================================================
 int cnl_add_notification(clientNode *client, char *notString){
-   if(ll_add_item(client->updates, notString) == PROG_ERROR){
+  char *tmp = malloc(sizeof(char) * (strlen(notString) + 1));
+  if(!tmp){
+    fprintf(stderr, "cnl_add_notification: error while allocating memory.\n");
+    return PROG_ERROR;
+  }
+  strcpy(tmp, notString);
+   if(ll_add_item(client->updates, tmp) == PROG_ERROR){
       fprintf(stderr, "cnl_add_notification: error while adding a notification to a client's updates list.\n");
       return PROG_ERROR;
    }

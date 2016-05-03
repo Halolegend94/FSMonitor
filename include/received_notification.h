@@ -29,6 +29,6 @@
    // Returns: the string in case of success, NULL in case of error
    //
    // ===========================================================================
-   char *get_string_representation(receivedNotification *not, long long serverStartupTime);
+   char *get_string_representation(receivedNotification *not, unsigned long long serverStartupTime);
 
 #endif

@@ -36,6 +36,7 @@ void *do_work(void *arg){
       }
       if(server.ID != (server.structure)->daemonServer){
          syncmapping_release(server.mapLock);
+         release_threadlock(server.activeLock);
          break;
       }
       if(update(server.structure) == -1){

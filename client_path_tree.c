@@ -136,7 +136,7 @@ int cpt_add_client_registration(pathNode *root, char *path, clientNodeList *cnl,
    clientNode *foundNode;
    if(cnl_exists_node(cnl, data, &foundNode)){
       for(i = 0; i < foundNode->numRegisteredPaths; i++){
-         if(strcmp(path, foundNode->registeredPaths[i]->path) == 0 && mode == NONRECURSIVE){
+         if(fname_compare(path, foundNode->registeredPaths[i]->path) == 0 && mode == NONRECURSIVE){
             foundNode->registeredPaths[i]->mode = mode;
             return PROG_SUCCESS;
          }else if(is_prefix(path, foundNode->registeredPaths[i]->path) && foundNode->registeredPaths[i]->mode == RECURSIVE){
@@ -533,7 +533,6 @@ int cpt_push_notification(pathNode *root, receivedNotification *not, char *strin
       notified.*/
       current = child;
       if(not->isDir == 1 && not->type == deletion){
-         printf(": %s\n", tokens[i]);
          if(!cpt_contains_child(current, tokens[i], &child)){
             return PROG_SUCCESS;
          }

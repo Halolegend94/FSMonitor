@@ -155,9 +155,10 @@ int main(int argc, char **argv){
             fprintf(stderr, "serverMonitor: error while adding a notification to a client's queue.\n");
             terminate_server();
          }
+         free(strNot);
       }
-      // print_mappingstructure_state(structure);
-      //sprint_client_register(server.clRegister);
+      print_mappingstructure_state(structure);
+      print_client_register(server.clRegister);
       //send all the notifications
       if(cnl_send_notifications((server.clRegister)->nodeList, server.udpPort) == PROG_ERROR){
          fprintf(stderr, "serverMonitor: error while sending notifications to clients.\n");
@@ -204,24 +205,16 @@ void check_params(int argc, char **argv){
    }
    char *path;
    if(is_absolute_path(argv[1]) == 0){
-      char *temp = get_current_directory();
-      if(!temp){
-         fprintf(stderr, "serverMonitor: error while getting the current directory.\n");
-         exit(0);
-      }
-      path = concatenate_path(temp, argv[1]);
-      if(!path){
-         fprintf(stderr, "serverMonitor: error while concatenation a string.\n");
-         exit(0);
-      }
-   }else{
-      path = malloc(sizeof(char) * (strlen(argv[1]) +1));
-      if(!path){
-         fprintf(stderr, "serverMonitor: error while allocating memory.\n");
-         exit(0);
-      }
-      strcpy(path, argv[1]);
+      fprintf(stderr, "serverMonitor: the path must be expressed as absolute path.\n");
+      exit(0);
    }
+    path = malloc(sizeof(char) * (strlen(argv[1]) +1));
+    if(!path){
+       fprintf(stderr, "serverMonitor: error while allocating memory.\n");
+       exit(0);
+    }
+    strcpy(path, argv[1]);
+
    if(is_directory(path) == 0){
       fprintf(stderr, "serverMonitor: the specified path is not a valid directory.\n");
       exit(0);
