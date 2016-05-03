@@ -108,7 +108,7 @@ int register_server_path(mappingStructure *str, int serverID, char *path){
 	if(ret == 1){
 			if(bucks == NULL){
 				return PATH_ALREADY_MONITORED;
-			}else{
+			}else{ //Update existing buckets
 				/*add the necessary branch to the filesystree*/
 				ret = __first_scan(pmm_offset_to_pointer(str->off_fileSystemTree), path);
 				if( ret == PROG_ERROR){ //error
@@ -121,7 +121,7 @@ int register_server_path(mappingStructure *str, int serverID, char *path){
 				int l;
 				for(l = 0; l < numBuckets; l++){
 					if(l > 0){
-						bucks[l]->deletionMark = 1; 
+						bucks[l]->deletionMark = 1;
 						bucks[l]->updated = 1;
 					} //buckets will be deleted at the next read of notifications
 					//check if the paths of the buckets that will be deleted are monitored by other servers
@@ -138,12 +138,13 @@ int register_server_path(mappingStructure *str, int serverID, char *path){
 					}
 					if(!found){
 						int lenP = strlen(mpath);
-						char *temp = malloc(sizeof(char) * lenP); //avoid the last "/"
+						char *temp = malloc(sizeof(char) * (lenP + 1));
 						if(!temp){
 							fprintf(stderr, "register_server_path: error while allocating memory.\n");
 							return PROG_ERROR;
 						}
-						strcpy(temp, mpath); //delete the last "/"
+						strcpy(temp, mpath);
+						temp[lenP - 1] = '\0'; //delete the last "/"
 						char **tokens;
 						int numTok;
 						if(tokenize_path(temp, &tokens, &numTok) == -1){
@@ -304,7 +305,7 @@ int __dfs_clean_subtree(fstNode *root){
 int __unmark_server_subtree(fstNode *root, char **tokens, int index, int target){
 	fstNode *nod;
 	int ret = fst_contains_child(root, tokens[index], &nod);
-	if(ret == -1){
+	if(ret == PROG_ERROR){
 		fprintf(stderr, "__delete_server_subtree: error while checking for a child "\
 		"to be in root's children list.\n");
 		return PROG_ERROR;
@@ -328,11 +329,11 @@ int __support_first_scan(fstNode *root, char *path){
 
 	myFileList fList;
 	int ret = get_directory_content(path, &fList);
-	if(ret == -1){
+	if(ret == PROG_ERROR){
 		fprintf(stderr, "scan: error while getting the directory content.\n");
 		return PROG_ERROR;
-	}else if(ret == -2){
-		return -2;
+	}else if(ret == PATH_NOT_ACCESSIBLE){
+		return PATH_NOT_ACCESSIBLE;
 	}
 	if(fList.count > 0){
 		fstNode **addedNodes;
@@ -357,7 +358,7 @@ int __support_first_scan(fstNode *root, char *path){
 		}
 		free(addedNodes);
 	}
-	return 0;
+	return PROG_SUCCESS;
 }
 
 // ===========================================================================
@@ -430,11 +431,11 @@ int __first_scan(fstNode *root, char *path){
 					if(ret == -1){
 						fprintf(stderr, "__first_scan: error while getting the directory content.\n");
 						return PROG_ERROR;
-					}else if(ret == -2){ //path has been deleted
+					}else if(ret == PATH_NOT_ACCESSIBLE){ //path has been deleted maybe
 						for(i = 0; i < numTok; i++) free(tokens[i]);
 						free(tokens);
 						free(conc_path);
-						return -2;
+						return PATH_NOT_ACCESSIBLE;
 					}
 					//the directory is assumed to exist beacuse the whole path specified by the client must
 					//be checked when it is received (so it is checked BEFORE this function call).

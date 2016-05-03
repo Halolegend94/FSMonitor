@@ -6,7 +6,6 @@
 #include <semaphore.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <errno.h>
 
 //structure that represents a lock file
 struct syncMapping{
@@ -26,7 +25,6 @@ int syncmapping_createlock(struct syncMapping **lock){
    (*lock)->sem = sem_open("/syncmap", O_CREAT, 0777, 1);
    if((*lock)->sem == SEM_FAILED){
       fprintf(stderr, "syncmapping_createlock: error while creating the semaphore.\n");
-      perror("Errore");
       return -1;
    }
    return 0;
@@ -36,7 +34,6 @@ int syncmapping_createlock(struct syncMapping **lock){
 // syncmapping_acquire
 // ===========================================================================
 int syncmapping_acquire(struct syncMapping *lock){
-      if(!lock) return -1;
       int ret = sem_wait(lock->sem);
       if(ret == -1){
         fprintf(stderr, "syncmapping_acquire: error while acquiring the syncmapping lock.\n");
@@ -49,7 +46,6 @@ int syncmapping_acquire(struct syncMapping *lock){
 // syncmapping_release
 // ===========================================================================
 int syncmapping_release(struct syncMapping *lock){
-   if(!lock) return -1;
    int err = sem_post(lock->sem);
    if(err == -1){
      fprintf(stderr, "syncmapping_release: error while releasing the syncmapping lock.\n");
@@ -62,7 +58,6 @@ int syncmapping_release(struct syncMapping *lock){
 // syncmapping_closelock
 // ===========================================================================
 int syncmapping_closelock(struct syncMapping *lock){
-   if(!lock) return -1;
    if(sem_close(lock->sem) == -1){
       fprintf(stderr, "syncmapping_closelock: error while closing the semaphore.\n");
       return -1;
@@ -75,7 +70,6 @@ int syncmapping_closelock(struct syncMapping *lock){
 // syncmapping_deletelock
 // ===========================================================================
 int syncmapping_deletelock(struct syncMapping *lock){
-   if(!lock) return -1;
    if(sem_close(lock->sem) == -1){
       fprintf(stderr, "syncmapping_deletelock: error while closing the semaphore.\n");
       return -1;

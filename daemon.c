@@ -27,7 +27,7 @@ void *do_work(void *arg){
       //check if isActive is zero
       if(acquire_threadlock(server.activeLock) == PROG_ERROR){
          fprintf(stderr, "daemon: error while acquiring the activeLock. Terminating execution.\n");
-         terminate_server();
+         cs1_terminate_server();
       }
 
       if(syncmapping_acquire(server.mapLock) == PROG_ERROR){
@@ -40,19 +40,19 @@ void *do_work(void *arg){
       }
       if(update(server.structure) == -1){
          fprintf(stderr, "daemon: error while updating the mapping. Terminating execution.\n");
-         cs_terminate_server();
+         cs2_terminate_server();
       }
 
       refreshTime = (server.structure)->refreshTime - 1;
       // print_mappingstructure_state(server.structure);
       if(syncmapping_release(server.mapLock) == PROG_ERROR){
         fprintf(stderr, "daemon: error while releasing the mapLock. Terminating execution.\n");
-        cs_terminate_server();
+        cs2_terminate_server();
       }
 
       if(release_threadlock(server.activeLock) == PROG_ERROR){
          fprintf(stderr, "daemon: error while acquiring the activeLock. Terminating execution.\n");
-         cs_terminate_server();
+         cs1_terminate_server();
       }
       if(thread_sleep(refreshTime) == -1)break; //signal received
    }

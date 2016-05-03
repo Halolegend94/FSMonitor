@@ -13,7 +13,7 @@ int opt(int argc, char **argv, int *index, const char **pwv, int numPwv, optToke
       return PROG_ERROR;
    }else if(!isalpha(argv[*index][1])){
       //lexycal error
-      fprintf(stderr, "parse_params::opt - lexycal error within %d param. Name must begin with aplha char.\n", *index);
+      fprintf(stderr, "parse_params::opt - lexycal error within %d param. Name must begin with an aplha char.\n", *index);
       return PROG_ERROR;
    }
    /*ceate a buffer*/

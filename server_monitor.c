@@ -50,7 +50,7 @@ int main(int argc, char **argv){
       /*critical section 1*/
       if(acquire_threadlock(server.activeLock) == PROG_ERROR){
          fprintf(stderr, "daemon: error while acquiring the activeLock. Terminating execution.\n");
-         terminate_server();
+         cs1_terminate_server();
       }
       /**************************************************
       part 1: get notification from the mapping
@@ -66,14 +66,19 @@ int main(int argc, char **argv){
       unsigned long long current_time = get_current_time();
       if(current_time == 0){
          fprintf(stderr, "serverMonitor: error while getting the current time. Aborting execution.\n");
-         cs_terminate_server();
+         cs2_terminate_server();
+      }
+      long long relTime = get_relative_time(current_time, structure->lastUpdate);
+      if(relTime == -1){
+         fprintf(stderr, "serverMonitor: error while getting the relative time.\n");
+         cs2_terminate_server();
       }
       if(structure->daemonServer == -1 || (server.ID != structure->daemonServer &&
-         get_relative_time(current_time, structure->lastUpdate) > (structure->refreshTime * DELAY_TOLLERANCE_FACTOR))){
+          relTime > (structure->refreshTime * DELAY_TOLLERANCE_FACTOR))){
          printf("Creating a new daemon..\n");
          if(create_daemon() == -1){
             fprintf(stderr, "serverMonitor: error while creating the daemon. Aborting execution..\n");
-            cs_terminate_server();
+            cs2_terminate_server();
          }
          structure->daemonServer = server.ID; //this server is the owner of the daemon
       }
@@ -85,16 +90,16 @@ int main(int argc, char **argv){
       int numDeletedPaths;
       if(get_notifications(server.structure, server.ID, &notificationsList, &numNotifications, &deletedPaths, &numDeletedPaths) == PROG_ERROR){
          fprintf(stderr, "serverMonitor: error while getting the notifications list. Aborting execution..\n");
-         cs_terminate_server();
+         cs2_terminate_server();
       }
       if(syncmapping_release(server.mapLock) == PROG_ERROR){
          fprintf(stderr, "serverMonitor: error while releasing the mapLock.\n");
-         cs_terminate_server();
+         cs2_terminate_server();
       }
 
       if(release_threadlock(server.activeLock) == PROG_ERROR){
          fprintf(stderr, "daemon: error while acquiring the activeLock. Terminating execution.\n");
-         cs_terminate_server();
+         cs1_terminate_server();
       }
       /***************************************************************
       send notifications to clients
@@ -151,8 +156,8 @@ int main(int argc, char **argv){
             terminate_server();
          }
       }
-    // print_mappingstructure_state(structure);
-     //sprint_client_register(server.clRegister);
+      // print_mappingstructure_state(structure);
+      //sprint_client_register(server.clRegister);
       //send all the notifications
       if(cnl_send_notifications((server.clRegister)->nodeList, server.udpPort) == PROG_ERROR){
          fprintf(stderr, "serverMonitor: error while sending notifications to clients.\n");
@@ -391,7 +396,7 @@ void initialize_server(){
    }
    //set the startup time
    server.startUpTime = get_current_time();
-   if(server.startUpTime == -1){
+   if(server.startUpTime == 0){
       fprintf(stderr, "serverMonitor: error while getting the current time.\n");
       exit(0);
    }

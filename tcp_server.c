@@ -14,7 +14,10 @@ int start_tcp_server(){
       fprintf(stderr, "start_tcp_server: error while loading the sockets library.\n");
       return PROG_ERROR;
    }
-   create_client_register(&(server.clRegister));
+   if(create_client_register(&(server.clRegister)) == PROG_ERROR){
+      fprintf(stderr, "start_tcp_server: error while creating the client register.\n");
+      return PROG_ERROR;
+   }
    int returnValue = create_thread(__tcp_server_function, NULL, &(server.tcpServer));
    if(returnValue == PROG_ERROR){
       fprintf(stderr, "start_tcp_server: error while creating the thread.\n");
@@ -200,7 +203,14 @@ void *client_request_handler(void *p){
          free(path);
          return NULL;
       }
-      if(!is_dir_accessible(path)){
+      int acc = is_dir_accessible(path);
+      if(acc == PROG_ERROR){
+         fprintf(stderr, "client_request_handler: error returned by is_dir_accessible.\n");
+         if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
+         closesocket(params->sock);
+         terminate_server();
+      }
+      if(!acc){
          if(send_data(params->sock, "403", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
          closesocket(params->sock);
          free(params->data->hostName);
@@ -261,26 +271,26 @@ void *client_request_handler(void *p){
             fprintf(stderr, "daemon: error while acquiring the activeLock. Terminating execution.\n");
             if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
             closesocket(params->sock);
-            terminate_server();
+            cs1_terminate_server();
          }
          if(syncmapping_acquire(server.mapLock) == PROG_ERROR){
                fprintf(stderr, "client_request_handler: error while acquiring the syncmapping lock.\n");
                if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
                closesocket(params->sock);
-               cs_terminate_server();
+               exit(0);
          }
          int regValue = register_server_path(server.structure, server.ID, path);
          if(syncmapping_release(server.mapLock) == PROG_ERROR){
             fprintf(stderr, "client_request_handler: error while releasing the syncmapping lock.\n");
             if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
             closesocket(params->sock);
-            cs_terminate_server();
+            cs2_terminate_server();
          }
          if(release_threadlock(server.activeLock) == PROG_ERROR){
             fprintf(stderr, "client_request_handler: error while releasing the syncmapping lock.\n");
             if(send_data(params->sock, "300", 4) == -1) fprintf(stderr, "client_request_handler: error while replying to the client.\n");
             closesocket(params->sock);
-            cs_terminate_server();
+            cs1_terminate_server();
          }
          //===============END SYNCMAPPING LOCK============================
 

@@ -1,13 +1,5 @@
 #include "utilities.h"
 
-// =======================================================
-// sleep
-// =======================================================
-void sleep(int seconds) {
-	Sleep(seconds * 1000);
-}
-
-
 char *GetLastErrorAsString(){
     //Get the error message, if any.
     DWORD errorMessageID = GetLastError();

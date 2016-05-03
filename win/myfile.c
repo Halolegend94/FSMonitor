@@ -76,10 +76,7 @@ int get_directory_content(char *dir, myFileList *fileList) {
 			return PROG_ERROR;
 		}
 		file->isDir = type == T_DIR ? TRUE : FALSE;
-		/*if (type == T_DIR) //set the type
-			fileList->list[fileList->count].isDir = TRUE;
-		else
-			fileList->list[fileList->count].isDir = FALSE;*/
+
 		//set the last write time
 		LARGE_INTEGER large;
 		large.LowPart = findData.ftLastWriteTime.dwLowDateTime;
@@ -472,11 +469,6 @@ int is_directory(char *dir){
 // tokenize_path
 // ===========================================================================
 int tokenize_path(char *path, char ***tokenList, int *tokenListSize){
-	if(MAX_TOKENS < 1 || MAX_TOKEN_LEN < 3){
-		fprintf(stderr, "tokenize_path: DEFINITIONS values not valid.\n");
-		return PROG_ERROR;
-	}
-
 	*tokenList = (char **) malloc(sizeof(char *) * MAX_TOKENS);
 	if(!(*tokenList)){
 		fprintf(stderr, "tokenize_path: error while allocating memory.\n");

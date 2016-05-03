@@ -3,23 +3,31 @@ extern serverStructure server;
 
 // ===========================================================================
 // terminate_server
-// NOTE: to use outside a critical section
+// NOTE: to use outside the critical section of active lock
 // ===========================================================================
 void terminate_server(){
    if(acquire_threadlock(server.activeLock) == PROG_ERROR){
       fprintf(stderr, "terminate_server: error while acquiring the activeLock. \n");
    }
-    if(syncmapping_acquire(server.mapLock) == PROG_ERROR){
-      fprintf(stderr, "terminate_server: error while acquiring the mapLock.\n");
-   }
-    cs_terminate_server();
+   cs1_terminate_server();
 }
 
 // ===========================================================================
-// cs_terminate_server
-// NOTE: Assumption: this function is called inside a critical section
+// cs1_terminate_server
+// NOTE: to use outside the critical section of syncmapping lock
 // ===========================================================================
-void cs_terminate_server(){
+void cs1_terminate_server(){
+    if(syncmapping_acquire(server.mapLock) == PROG_ERROR){
+      fprintf(stderr, "terminate_server: error while acquiring the mapLock.\n");
+   }
+    cs2_terminate_server();
+}
+
+// ===========================================================================
+// cs2_terminate_server
+// NOTE: Assumption: this function is called inside a critical section of syncmapping_lock
+// ===========================================================================
+void cs2_terminate_server(){
    printf("\nTerminating server..");
    terminate_thread(server.tcpServer);
    (server.structure)->serverCounter--;

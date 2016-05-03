@@ -74,8 +74,7 @@ int get_directory_content(char *dir, myFileList *fileList){
 		mode_t mode;
 		int result = stat(fullPath, &fileData);
 		if(result == -1){
-			/*perror("Error while opening the file");
-			fprintf(stderr, "Error while retrieving file \"%s\" information.\n", fullPath);*/
+			//if cannot access to path, ignore it
 			dirEntry = readdir(dpointer);
 			free(fullPath);
 			continue;
@@ -253,11 +252,6 @@ int is_absolute_path(char *path){
 int tokenize_path(char *path, char ***tokenList, int *tokenListSize){
 	if(path == NULL){
 		fprintf(stderr, "tokenize_path: path parameter is null\n");
-		return -1;
-	}
-
-	if(MAX_TOKENS < 1){
-		fprintf(stderr, "tokenize_path: MAX_TOKENS value not valid.\n");
 		return -1;
 	}
 

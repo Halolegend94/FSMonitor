@@ -26,10 +26,6 @@ int fst_build_root(fstNode **root){
 // fst_get_children
 // ===========================================================================
 int fst_get_children(fstNode *father, fstNode ***list, unsigned int *size){
-	if(!father || !list){
-		fprintf(stderr, "fst_get_children: input not valid.\n");
-		return -1;
-	}
 	*size = father->numChildren;
 	if(father->numChildren == 0){
 		return 1;
@@ -218,7 +214,7 @@ int fst_add_child(fstNode *father, myFile *file, fstNode **node){
 // ===========================================================================
 int fst_add_children(fstNode *father, myFileList *fList, fstNode ***node, int *count){
 	if(fList->count == 0){
-			fprintf(stderr, "fst_set_children: no children to add at node %s\n",
+			fprintf(stderr, "fst_set_children: no children to add to node %s\n",
 				(char *) pmm_offset_to_pointer(father->off_name));
 			return -1;
 	}

@@ -6,7 +6,7 @@ char *get_type_string(notificationType type);
 // ===========================================================================
 // get_string_representation
 // ===========================================================================
-char *get_string_representation(receivedNotification *not, long long serverStartupTime){
+char *get_string_representation(receivedNotification *not, unsigned long long serverStartupTime){
 
    long long modTime = get_relative_time(not->modTimestamp, serverStartupTime);
    if(modTime == -1){

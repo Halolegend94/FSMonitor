@@ -51,12 +51,20 @@
 
    // ===========================================================================
    //
-   // cs_terminate_server
+   // cs1_terminate_server
+   // NOTE: to use outside the critical section of syncmapping lock
+   //
+   // ===========================================================================
+   void cs1_terminate_server();
+
+   // ===========================================================================
+   //
+   // cs2_terminate_server
    // Description: terminate the server execution, cleaning the mapping and
    // freeing the resources.
    // Description:
    // NOTE: this function MUST be called inside a critical section
    //
    // ===========================================================================
-   void cs_terminate_server();
+   void cs2_terminate_server();
 #endif

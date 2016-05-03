@@ -244,7 +244,7 @@ int nb_read_notifications(notificationsBucket *start, receivedNotification ***li
                //get all the notification
                notification *currentNot = pmm_offset_to_pointer(current->off_list);
                current->off_list = 0;
-               current->off_last_notification = 0;
+               current->off_last_notification = 0; //reset offsets
                do{
                   if((*count) >= currentCapacity){ //check if there is enough space
                      currentCapacity += NUM_INCREMENT;
