@@ -25,12 +25,6 @@ int main(int argc, char **argv){
       terminate_server();
    }
 
-   //create the activelock
-   if(create_threadlock(&server.activeLock) == PROG_ERROR){
-      fprintf(stderr, "serverMonitor: error while creating the threadLock.\n");
-      terminate_server();
-   }
-
    //Start the TCP server
    if(start_tcp_server() == PROG_ERROR){
       fprintf(stderr, "serverMonitor: error while starting the tcp server.\n");
@@ -298,6 +292,11 @@ void load_settings(){
 // ===========================================================================
 void initialize_server(){
     printf("Initializing data structures..\n");
+    //create the activelock
+    if(create_threadlock(&server.activeLock) == PROG_ERROR){
+       fprintf(stderr, "serverMonitor: error while creating the threadLock.\n");
+       exit(0);
+    }
    /*create the lock that manages the access to the file mapping*/
    if(syncmapping_createlock(&(server.mapLock)) == -1){
       fprintf(stderr, "serverMonitor: Error while creating the lock file.\n");
