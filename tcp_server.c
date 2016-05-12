@@ -74,25 +74,6 @@ void *__tcp_server_function(void *arg){
 }
 
 // ===========================================================================
-// convert_abs_path
-// ===========================================================================
-char *convert_abs_path(char *path){
-   char *temp = get_current_directory();
-   if(!temp){
-      fprintf(stderr, "client_request_handler: error while getting the current directory.\n");
-      return NULL;
-   }
-   char *newpath = concatenate_path(temp, path);
-   if(!newpath){
-      fprintf(stderr,"client_request_handler: error while concatenating a path.\n");
-      return NULL;
-   }
-   free(temp);
-   free(path);
-   return newpath;
-}
-
-// ===========================================================================
 // client_request_handler [PRIVATE]
 // ===========================================================================
 void *client_request_handler(void *p){

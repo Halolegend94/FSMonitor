@@ -27,6 +27,7 @@ int main(int argc, char **argv){
 
    //Start the TCP server
    if(start_tcp_server() == PROG_ERROR){
+      server.tcpServer = NULL;
       fprintf(stderr, "serverMonitor: error while starting the tcp server.\n");
       terminate_server();
    }
@@ -152,7 +153,7 @@ int main(int argc, char **argv){
          free(strNot);
       }
       //print_mappingstructure_state(structure);
-      //print_client_register(server.clRegister);
+      print_client_register(server.clRegister);
       //send all the notifications
       if(cnl_send_notifications((server.clRegister)->nodeList, server.udpPort) == PROG_ERROR){
          fprintf(stderr, "serverMonitor: error while sending notifications to clients.\n");
