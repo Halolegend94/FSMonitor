@@ -22,7 +22,7 @@ WOBJ=/c
 WCLEAN=DEL
 
 LCLEAN=rm -f
-LC=gcc -pthread --static -g
+LC=gcc -pthread
 LNAME=-o
 LOBJ=-c
 LLINK=-lm
